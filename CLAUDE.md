@@ -14,6 +14,8 @@
 - Node.js: v20.20.2 を nvm-windows で管理して使用している
   - システムのデフォルトはまだ古いNode(v17.9.1)なので、新しいターミナルでは
     `nvm use 20` が必要になる場合がある
+- ToDoデータはSupabase PostgreSQLの`todos`テーブルに保存(Row Level Securityで
+  ユーザーごとに分離。詳細は下記)
 
 ## これまでにやったこと
 
@@ -34,10 +36,17 @@
    - `app/signup/` — サインアップ画面 + Server Action(`signUp`、確認メール方式)
    - `app/logout/actions.ts` + `app/components/LogoutButton.tsx` — ログアウト
    - `app/page.tsx` で `supabase.auth.getUser()` により未ログイン時は `/login` にリダイレクト
+4. ToDoデータをSupabase PostgreSQLに移行
+   - `todos`テーブル(`id`, `user_id`, `text`, `completed`, `created_at`)をSupabaseダッシュボードのSQL Editorで作成
+   - Row Level Security(RLS)を有効化し、`auth.uid() = user_id`の行だけ本人がselect/insert/update/deleteできるポリシーを設定
+   - `app/todos/actions.ts` — `addTodo` / `toggleTodo` / `deleteTodo` のServer Action。RLSに加えてクエリ条件にも`user_id`を含め、二重に所有者チェック
+   - `app/page.tsx`(サーバーコンポーネント)がログイン中ユーザーのToDoを取得し`TodoApp`へ渡す
+   - `TodoApp` / `TodoItem` は自前でstateを持たず、渡された最新データをそのまま表示し、操作はServer Actionを直接呼ぶ形に変更(`revalidatePath("/")`で再描画)
 
 ## 今後の予定(未着手)
 
-- ToDoデータのSupabase PostgreSQLへの移行(現状はReactのstateのみで永続化されない)
+- 現状は「その場でDBに反映→ページ再描画」という素直な作り。よりリッチな体験にしたい場合は
+  楽観的UI更新(`useOptimistic`など)の導入を検討できる(現時点では未対応)
 
 ## 注意点
 

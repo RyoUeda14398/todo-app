@@ -13,6 +13,11 @@ export default async function Home() {
     redirect("/login");
   }
 
+  const { data: todos } = await supabase
+    .from("todos")
+    .select("id, text, completed")
+    .order("created_at", { ascending: true });
+
   return (
     <div className="flex flex-1 flex-col items-center bg-zinc-100 p-6 dark:bg-black">
       <div className="mb-4 flex w-full max-w-md items-center justify-between">
@@ -21,7 +26,7 @@ export default async function Home() {
         </span>
         <LogoutButton />
       </div>
-      <TodoApp />
+      <TodoApp todos={todos ?? []} />
     </div>
   );
 }

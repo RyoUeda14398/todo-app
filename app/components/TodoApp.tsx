@@ -1,36 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import TodoItem, { type Todo } from "@/app/components/TodoItem";
+import { addTodo } from "@/app/todos/actions";
 
-export default function TodoApp() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [text, setText] = useState("");
+type TodoAppProps = {
+  todos: Todo[];
+};
 
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    setTodos((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: trimmed, completed: false },
-    ]);
-    setText("");
-  }
-
-  function handleToggle(id: string) {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
-  }
-
-  function handleDelete(id: string) {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  }
-
+export default function TodoApp({ todos }: TodoAppProps) {
   const remainingCount = todos.filter((todo) => !todo.completed).length;
 
   return (
@@ -39,11 +16,11 @@ export default function TodoApp() {
         ToDoリスト
       </h1>
 
-      <form onSubmit={handleAdd} className="mb-4 flex gap-2">
+      <form action={addTodo} className="mb-4 flex gap-2">
         <input
           type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          name="text"
+          required
           placeholder="やることを入力..."
           className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
@@ -63,12 +40,7 @@ export default function TodoApp() {
         <>
           <ul className="flex flex-col gap-2">
             {todos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-              />
+              <TodoItem key={todo.id} todo={todo} />
             ))}
           </ul>
           <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
