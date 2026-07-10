@@ -48,9 +48,15 @@
 ## デプロイ
 
 - GitHubリポジトリ: https://github.com/RyoUeda14398/todo-app
-- Vercel(本番URL): https://todo-3vgbu5rby-noyaryo.vercel.app/
+- Vercel(本番URL): https://todo-mp3hp81e5-noyaryo.vercel.app/
+  - **注意**: Vercelはpushのたびに新しいユニークURLを発行する。このURLが今後変わっていないか、
+    Vercelダッシュボードの「Domains」で都度確認すること。URLが変わった場合はSupabase側の
+    Site URL / Redirect URLsも更新が必要(下記)
+- Deployment Protection(Vercel Authentication)はProduction環境について無効化済み
+  (有効なままだと一般公開されず、全リクエストにSSO認証のオーバーヘッドがかかる)
 - VercelのEnvironment Variablesに `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` を設定済み
-- Supabaseダッシュボードの `Authentication → URL Configuration` で、Site URL / Redirect URLsを上記VercelのURLに変更済み(確認メールのリンクをlocalhostではなく本番URLに向けるため)
+- Supabaseダッシュボードの `Authentication → URL Configuration` で、Site URL / Redirect URLsを
+  上記VercelのURLに変更済み(確認メールのリンクをlocalhostではなく本番URLに向けるため)
 
 ## 今後の予定(未着手)
 
