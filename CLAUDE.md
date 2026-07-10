@@ -48,15 +48,34 @@
 ## デプロイ
 
 - GitHubリポジトリ: https://github.com/RyoUeda14398/todo-app
-- Vercel(本番URL): https://todo-mp3hp81e5-noyaryo.vercel.app/
-  - **注意**: Vercelはpushのたびに新しいユニークURLを発行する。このURLが今後変わっていないか、
-    Vercelダッシュボードの「Domains」で都度確認すること。URLが変わった場合はSupabase側の
-    Site URL / Redirect URLsも更新が必要(下記)
+- Vercel(本番の固定URL、動作確認・共有には必ずこちらを使うこと):
+  **https://todo-app-six-eta-83.vercel.app**
+  - Vercelはpushのたびに `todo-xxxxxxxxx-noyaryo.vercel.app` のような「デプロイ固有URL」も
+    発行するが、これはそのデプロイ内容に固定されたスナップショットで、以降のpushを反映しない。
+    動作確認・共有には必ず上記の固定URL(Vercelダッシュボード → Settings → Domains で
+    「Production」ラベルが付いている、ハッシュを含まないドメイン)を使うこと
 - Deployment Protection(Vercel Authentication)はProduction環境について無効化済み
   (有効なままだと一般公開されず、全リクエストにSSO認証のオーバーヘッドがかかる)
 - VercelのEnvironment Variablesに `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` を設定済み
 - Supabaseダッシュボードの `Authentication → URL Configuration` で、Site URL / Redirect URLsを
-  上記VercelのURLに変更済み(確認メールのリンクをlocalhostではなく本番URLに向けるため)
+  上記の固定URLに設定済み(確認メールのリンクをlocalhostや古いデプロイ固有URLではなく、
+  常に最新を指す本番URLに向けるため)
+
+### トラブルシューティング記録: 本番での楽観的UI更新が「遅い」問題
+
+ToDoの追加・削除で導入した楽観的UI更新(`useOptimistic`)が、本番環境でだけ反応が遅く感じる、
+という報告があり調査した。結論として `useOptimistic` の実装自体には問題がなく、原因は以下2点の
+インフラ設定によるものだった。
+
+1. **Deployment Protection(Vercel Authentication)が有効になっていた** — 全リクエストが
+   VercelのSSO認証を経由する設定になっており、オーバーヘッドの一因になっていた
+2. **確認に使っていたURLが「デプロイ固有URL」で、最新のpushを反映していなかった** —
+   pushのたびに新しいURLが発行されることを知らず、古いデプロイを見続けていた
+
+調査時は、認証不要の一時的な検証ページ(`useOptimistic`+わざと遅延させたServer Action)を
+作り、ローカル(dev/本番ビルド)・Vercel本番のそれぞれでクリックから画面反映までの時間を
+Playwrightで計測して切り分けた(いずれも50〜80ms程度で、React側の仕組みは正常と確認)。
+検証ページは調査後に削除済み。
 
 ## 今後の予定(未着手)
 
