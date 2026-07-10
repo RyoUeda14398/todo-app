@@ -10,16 +10,16 @@ export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signup, initialState);
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-100 p-6 dark:bg-black">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex flex-1 items-center justify-center bg-gradient-to-b from-zinc-100 via-zinc-100 to-indigo-50 p-6 dark:from-black dark:via-black dark:to-indigo-950/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
         <h1 className="mb-6 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          新規登録
+          📝 新規登録
         </h1>
 
         {state.success ? (
           <p className="text-zinc-700 dark:text-zinc-300">
             確認メールを送信しました。メール内のリンクを開いて登録を完了してから、
-            <Link href="/login" className="font-medium text-zinc-900 underline dark:text-zinc-50">
+            <Link href="/login" className="font-medium text-indigo-600 underline dark:text-indigo-400">
               ログイン
             </Link>
             してください。
@@ -36,7 +36,7 @@ export default function SignupPage() {
                   name="email"
                   type="email"
                   required
-                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                 />
               </div>
 
@@ -50,7 +50,7 @@ export default function SignupPage() {
                   type="password"
                   required
                   minLength={6}
-                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                 />
               </div>
 
@@ -61,7 +61,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={pending}
-                className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                className="mt-2 rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {pending ? "登録中..." : "登録"}
               </button>
@@ -69,7 +69,7 @@ export default function SignupPage() {
 
             <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
               すでにアカウントをお持ちの方は{" "}
-              <Link href="/login" className="font-medium text-zinc-900 underline dark:text-zinc-50">
+              <Link href="/login" className="font-medium text-indigo-600 underline dark:text-indigo-400">
                 ログイン
               </Link>
             </p>

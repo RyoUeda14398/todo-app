@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { toggleTodo, deleteTodo } from "@/app/todos/actions";
+import { getTodayInJST } from "@/lib/date";
 
 export type Todo = {
   id: string;
@@ -22,8 +23,7 @@ function formatDueDate(dueDate: string) {
 }
 
 function isOverdue(dueDate: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  return dueDate < today;
+  return dueDate < getTodayInJST();
 }
 
 export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
@@ -31,7 +31,7 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
   const overdue = !todo.completed && todo.due_date !== null && isOverdue(todo.due_date);
 
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+    <li className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-indigo-200 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-indigo-900">
       <input
         type="checkbox"
         checked={todo.completed}
@@ -43,7 +43,7 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
             await toggleTodo(todo.id, nextCompleted);
           });
         }}
-        className="h-5 w-5 shrink-0 accent-zinc-900 dark:accent-zinc-50"
+        className="h-5 w-5 shrink-0 accent-indigo-600"
         aria-label={`${todo.text} を完了にする`}
       />
       <span

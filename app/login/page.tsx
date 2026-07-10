@@ -10,10 +10,10 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-100 p-6 dark:bg-black">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex flex-1 items-center justify-center bg-gradient-to-b from-zinc-100 via-zinc-100 to-indigo-50 p-6 dark:from-black dark:via-black dark:to-indigo-950/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
         <h1 className="mb-6 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          ログイン
+          📝 ログイン
         </h1>
 
         <form action={formAction} className="flex flex-col gap-4">
@@ -26,7 +26,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             />
           </div>
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-indigo-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             />
           </div>
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={pending}
-            className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="mt-2 rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
             {pending ? "ログイン中..." : "ログイン"}
           </button>
@@ -58,7 +58,7 @@ export default function LoginPage() {
 
         <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
           アカウントをお持ちでない方は{" "}
-          <Link href="/signup" className="font-medium text-zinc-900 underline dark:text-zinc-50">
+          <Link href="/signup" className="font-medium text-indigo-600 underline dark:text-indigo-400">
             新規登録
           </Link>
         </p>
