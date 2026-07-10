@@ -1,5 +1,6 @@
 "use client";
 
+import { useOptimistic } from "react";
 import TodoItem, { type Todo } from "@/app/components/TodoItem";
 import { addTodo } from "@/app/todos/actions";
 
@@ -7,8 +8,54 @@ type TodoAppProps = {
   todos: Todo[];
 };
 
+type OptimisticAction =
+  | { type: "add"; todo: Todo }
+  | { type: "toggle"; id: string; completed: boolean }
+  | { type: "delete"; id: string };
+
+function todosReducer(state: Todo[], action: OptimisticAction): Todo[] {
+  switch (action.type) {
+    case "add":
+      return [...state, action.todo];
+    case "toggle":
+      return state.map((todo) =>
+        todo.id === action.id ? { ...todo, completed: action.completed } : todo
+      );
+    case "delete":
+      return state.filter((todo) => todo.id !== action.id);
+    default:
+      return state;
+  }
+}
+
 export default function TodoApp({ todos }: TodoAppProps) {
-  const remainingCount = todos.filter((todo) => !todo.completed).length;
+  const [optimisticTodos, applyOptimisticUpdate] = useOptimistic(
+    todos,
+    todosReducer
+  );
+
+  async function handleAdd(formData: FormData) {
+    const text = String(formData.get("text") ?? "").trim();
+    if (!text) return;
+
+    applyOptimisticUpdate({
+      type: "add",
+      todo: { id: crypto.randomUUID(), text, completed: false },
+    });
+    await addTodo(formData);
+  }
+
+  function handleToggle(id: string, completed: boolean) {
+    applyOptimisticUpdate({ type: "toggle", id, completed });
+  }
+
+  function handleDelete(id: string) {
+    applyOptimisticUpdate({ type: "delete", id });
+  }
+
+  const remainingCount = optimisticTodos.filter(
+    (todo) => !todo.completed
+  ).length;
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -16,7 +63,7 @@ export default function TodoApp({ todos }: TodoAppProps) {
         ToDoリスト
       </h1>
 
-      <form action={addTodo} className="mb-4 flex gap-2">
+      <form action={handleAdd} className="mb-4 flex gap-2">
         <input
           type="text"
           name="text"
@@ -32,19 +79,24 @@ export default function TodoApp({ todos }: TodoAppProps) {
         </button>
       </form>
 
-      {todos.length === 0 ? (
+      {optimisticTodos.length === 0 ? (
         <p className="py-8 text-center text-zinc-400 dark:text-zinc-600">
           まだToDoがありません
         </p>
       ) : (
         <>
           <ul className="flex flex-col gap-2">
-            {todos.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} />
+            {optimisticTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+              />
             ))}
           </ul>
           <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            残り {remainingCount} / {todos.length} 件
+            残り {remainingCount} / {optimisticTodos.length} 件
           </p>
         </>
       )}

@@ -11,9 +11,11 @@ export type Todo = {
 
 type TodoItemProps = {
   todo: Todo;
+  onToggle: (id: string, completed: boolean) => void;
+  onDelete: (id: string) => void;
 };
 
-export default function TodoItem({ todo }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -22,11 +24,13 @@ export default function TodoItem({ todo }: TodoItemProps) {
         type="checkbox"
         checked={todo.completed}
         disabled={isPending}
-        onChange={() =>
-          startTransition(() => {
-            toggleTodo(todo.id, !todo.completed);
-          })
-        }
+        onChange={() => {
+          const nextCompleted = !todo.completed;
+          startTransition(async () => {
+            onToggle(todo.id, nextCompleted);
+            await toggleTodo(todo.id, nextCompleted);
+          });
+        }}
         className="h-5 w-5 shrink-0 accent-zinc-900 dark:accent-zinc-50"
         aria-label={`${todo.text} を完了にする`}
       />
@@ -42,11 +46,12 @@ export default function TodoItem({ todo }: TodoItemProps) {
       <button
         type="button"
         disabled={isPending}
-        onClick={() =>
-          startTransition(() => {
-            deleteTodo(todo.id);
-          })
-        }
+        onClick={() => {
+          startTransition(async () => {
+            onDelete(todo.id);
+            await deleteTodo(todo.id);
+          });
+        }}
         className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950"
         aria-label={`${todo.text} を削除`}
       >

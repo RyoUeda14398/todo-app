@@ -10,12 +10,10 @@
 - React 19
 - Tailwind CSS 4
 - 認証: Supabase Auth(メール+パスワード)
-- データベース: Supabase PostgreSQL(未接続。今はSupabase AuthのユーザーテーブルのみでToDo本体はまだReactのstate)
+- データベース: Supabase PostgreSQL(`todos`テーブルにToDoを保存。Row Level Securityでユーザーごとに分離)
 - Node.js: v20.20.2 を nvm-windows で管理して使用している
   - システムのデフォルトはまだ古いNode(v17.9.1)なので、新しいターミナルでは
     `nvm use 20` が必要になる場合がある
-- ToDoデータはSupabase PostgreSQLの`todos`テーブルに保存(Row Level Securityで
-  ユーザーごとに分離。詳細は下記)
 
 ## これまでにやったこと
 
@@ -42,11 +40,21 @@
    - `app/todos/actions.ts` — `addTodo` / `toggleTodo` / `deleteTodo` のServer Action。RLSに加えてクエリ条件にも`user_id`を含め、二重に所有者チェック
    - `app/page.tsx`(サーバーコンポーネント)がログイン中ユーザーのToDoを取得し`TodoApp`へ渡す
    - `TodoApp` / `TodoItem` は自前でstateを持たず、渡された最新データをそのまま表示し、操作はServer Actionを直接呼ぶ形に変更(`revalidatePath("/")`で再描画)
+5. ToDoの追加・完了切り替え・削除を楽観的UI更新(Optimistic UI)に変更
+   - `app/components/TodoApp.tsx` に `useOptimistic` を導入し、ボタン操作の瞬間に画面へ反映
+   - 裏側では従来どおりServer Actionを呼んでDBに保存し、`revalidatePath("/")`で本物のデータに置き換わる
+   - `app/components/TodoItem.tsx` は親から渡された楽観的更新の関数を呼んでからServer Actionを呼ぶ順序に変更
+
+## デプロイ
+
+- GitHubリポジトリ: https://github.com/RyoUeda14398/todo-app
+- Vercel(本番URL): https://todo-3vgbu5rby-noyaryo.vercel.app/
+- VercelのEnvironment Variablesに `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` を設定済み
+- Supabaseダッシュボードの `Authentication → URL Configuration` で、Site URL / Redirect URLsを上記VercelのURLに変更済み(確認メールのリンクをlocalhostではなく本番URLに向けるため)
 
 ## 今後の予定(未着手)
 
-- 現状は「その場でDBに反映→ページ再描画」という素直な作り。よりリッチな体験にしたい場合は
-  楽観的UI更新(`useOptimistic`など)の導入を検討できる(現時点では未対応)
+- 現時点で特に予定している機能追加はなし
 
 ## 注意点
 
