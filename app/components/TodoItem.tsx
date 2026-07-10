@@ -1,6 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { toggleTodo, deleteTodo } from "@/app/todos/actions";
 import { getTodayInJST } from "@/lib/date";
 
@@ -30,8 +32,38 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
   const overdue = !todo.completed && todo.due_date !== null && isOverdue(todo.due_date);
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: todo.id, data: { type: "list-item" } });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-indigo-200 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-indigo-900">
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`animate-todo-in flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-indigo-400/40 dark:hover:bg-white/[0.07] ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="shrink-0 cursor-grab touch-none rounded p-1 text-zinc-300 hover:text-zinc-500 active:cursor-grabbing dark:text-zinc-600 dark:hover:text-zinc-400"
+        aria-label={`${todo.text} を並び替え`}
+      >
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor" aria-hidden>
+          <circle cx="3" cy="2" r="1.3" />
+          <circle cx="9" cy="2" r="1.3" />
+          <circle cx="3" cy="8" r="1.3" />
+          <circle cx="9" cy="8" r="1.3" />
+          <circle cx="3" cy="14" r="1.3" />
+          <circle cx="9" cy="14" r="1.3" />
+        </svg>
+      </button>
       <input
         type="checkbox"
         checked={todo.completed}
@@ -43,11 +75,11 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
             await toggleTodo(todo.id, nextCompleted);
           });
         }}
-        className="h-5 w-5 shrink-0 accent-indigo-600"
+        className="h-5 w-5 shrink-0 accent-indigo-600 transition-transform active:scale-90"
         aria-label={`${todo.text} を完了にする`}
       />
       <span
-        className={`flex-1 break-words ${
+        className={`flex-1 break-words transition-all duration-300 ${
           todo.completed
             ? "text-zinc-400 line-through dark:text-zinc-600"
             : "text-zinc-900 dark:text-zinc-50"
@@ -75,7 +107,7 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
             await deleteTodo(todo.id);
           });
         }}
-        className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950"
+        className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950"
         aria-label={`${todo.text} を削除`}
       >
         削除

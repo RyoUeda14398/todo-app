@@ -7,6 +7,20 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayInJST } from "@/lib/date";
 
+async function getNextPosition(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { data } = await supabase
+    .from("todos")
+    .select("position")
+    .eq("user_id", userId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.position ?? -1) + 1;
+}
+
 const extractionSchema = z.object({
   task: z.string().describe("日付や時刻の表現を除いた、やるべきことの内容"),
   due_date: z
@@ -55,9 +69,12 @@ task には、日付や時刻の表現(「明日」「18時までに」など)�
       prompt: rawText,
     });
 
+    const position = await getNextPosition(supabase, user.id);
+
     await supabase.from("todos").insert({
       text: output.task,
       due_date: output.due_date,
+      position,
       user_id: user.id,
     });
 

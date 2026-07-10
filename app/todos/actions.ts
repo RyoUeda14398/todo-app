@@ -3,6 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+async function getNextPosition(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { data } = await supabase
+    .from("todos")
+    .select("position")
+    .eq("user_id", userId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data?.position ?? -1) + 1;
+}
+
 export async function addTodo(formData: FormData) {
   const text = String(formData.get("text") ?? "").trim();
   if (!text) return;
@@ -15,9 +29,11 @@ export async function addTodo(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
+  const position = await getNextPosition(supabase, user.id);
+
   await supabase
     .from("todos")
-    .insert({ text, due_date: dueDate || null, user_id: user.id });
+    .insert({ text, due_date: dueDate || null, position, user_id: user.id });
 
   revalidatePath("/");
 }
@@ -46,6 +62,42 @@ export async function deleteTodo(id: string) {
   if (!user) return;
 
   await supabase.from("todos").delete().eq("id", id).eq("user_id", user.id);
+
+  revalidatePath("/");
+}
+
+export async function reorderTodos(orderedIds: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("todos")
+        .update({ position: index })
+        .eq("id", id)
+        .eq("user_id", user.id)
+    )
+  );
+
+  revalidatePath("/");
+}
+
+export async function updateDueDate(id: string, dueDate: string | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("todos")
+    .update({ due_date: dueDate })
+    .eq("id", id)
+    .eq("user_id", user.id);
 
   revalidatePath("/");
 }
