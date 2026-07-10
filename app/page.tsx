@@ -15,7 +15,7 @@ export default async function Home() {
 
   const { data: todos } = await supabase
     .from("todos")
-    .select("id, text, completed")
+    .select("id, text, completed, due_date")
     .order("created_at", { ascending: true });
 
   return (

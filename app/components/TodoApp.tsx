@@ -38,9 +38,16 @@ export default function TodoApp({ todos }: TodoAppProps) {
     const text = String(formData.get("text") ?? "").trim();
     if (!text) return;
 
+    const dueDate = String(formData.get("due_date") ?? "").trim();
+
     applyOptimisticUpdate({
       type: "add",
-      todo: { id: crypto.randomUUID(), text, completed: false },
+      todo: {
+        id: crypto.randomUUID(),
+        text,
+        completed: false,
+        due_date: dueDate || null,
+      },
     });
     await addTodo(formData);
   }
@@ -70,6 +77,12 @@ export default function TodoApp({ todos }: TodoAppProps) {
           required
           placeholder="やることを入力..."
           className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        />
+        <input
+          type="date"
+          name="due_date"
+          aria-label="締切日(任意)"
+          className="rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
         <button
           type="submit"

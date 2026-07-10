@@ -10,7 +10,8 @@
 - React 19
 - Tailwind CSS 4
 - 認証: Supabase Auth(メール+パスワード)
-- データベース: Supabase PostgreSQL(`todos`テーブルにToDoを保存。Row Level Securityでユーザーごとに分離)
+- データベース: Supabase PostgreSQL(`todos`テーブルにToDoを保存。`id`, `user_id`, `text`,
+  `completed`, `due_date`(締切日、任意), `created_at`。Row Level Securityでユーザーごとに分離)
 - Node.js: v20.20.2 を nvm-windows で管理して使用している
   - システムのデフォルトはまだ古いNode(v17.9.1)なので、新しいターミナルでは
     `nvm use 20` が必要になる場合がある
@@ -44,6 +45,12 @@
    - `app/components/TodoApp.tsx` に `useOptimistic` を導入し、ボタン操作の瞬間に画面へ反映
    - 裏側では従来どおりServer Actionを呼んでDBに保存し、`revalidatePath("/")`で本物のデータに置き換わる
    - `app/components/TodoItem.tsx` は親から渡された楽観的更新の関数を呼んでからServer Actionを呼ぶ順序に変更
+6. ToDoに締切日(任意)を設定できるように変更
+   - `todos`テーブルに`due_date`(date型、NULL許可)列をSupabaseダッシュボードのSQL Editorで追加
+     (既存の行はNULLになる。RLSポリシーは行単位のため追加設定不要)
+   - `app/todos/actions.ts`の`addTodo`が締切日も保存
+   - `app/components/TodoApp.tsx`の追加フォームに`<input type="date">`を追加(空欄可)
+   - `app/components/TodoItem.tsx`で締切日を表示し、未完了かつ今日より前の日付なら赤字で強調
 
 ## デプロイ
 

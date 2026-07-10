@@ -7,6 +7,7 @@ export type Todo = {
   id: string;
   text: string;
   completed: boolean;
+  due_date: string | null;
 };
 
 type TodoItemProps = {
@@ -15,8 +16,19 @@ type TodoItemProps = {
   onDelete: (id: string) => void;
 };
 
+function formatDueDate(dueDate: string) {
+  const [year, month, day] = dueDate.split("-");
+  return `${year}/${month}/${day}`;
+}
+
+function isOverdue(dueDate: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  return dueDate < today;
+}
+
 export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
+  const overdue = !todo.completed && todo.due_date !== null && isOverdue(todo.due_date);
 
   return (
     <li className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
@@ -43,6 +55,17 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
       >
         {todo.text}
       </span>
+      {todo.due_date && (
+        <span
+          className={`shrink-0 text-xs ${
+            overdue
+              ? "font-medium text-red-600 dark:text-red-400"
+              : "text-zinc-400 dark:text-zinc-500"
+          }`}
+        >
+          {formatDueDate(todo.due_date)}
+        </span>
+      )}
       <button
         type="button"
         disabled={isPending}
