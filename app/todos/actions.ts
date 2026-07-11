@@ -95,7 +95,11 @@ export async function updateDueDate(id: string, dueDate: string | null) {
 
   await supabase
     .from("todos")
-    .update({ due_date: dueDate })
+    .update({
+      due_date: dueDate,
+      day_before_reminder_sent: false,
+      due_day_reminder_sent: false,
+    })
     .eq("id", id)
     .eq("user_id", user.id);
 

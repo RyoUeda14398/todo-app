@@ -24,6 +24,9 @@
 - AI機能: Vercel AI SDK(`ai` v6系)+ `@ai-sdk/anthropic`。モデルはClaude Haiku 4.5
   (`claude-haiku-4-5-20251001`)。APIキーは`.env.local`の`ANTHROPIC_API_KEY`
   (`NEXT_PUBLIC_`なし、サーバー専用の秘密情報。従量課金であることに注意)
+- 締切リマインダー通知: `web-push`(Web Push APIでの送信)+ Vercel Cron Jobs(毎日の
+  定期実行)。VAPID鍵(`NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`)と
+  `CRON_SECRET`は`.env.local`とVercelの環境変数の両方に設定が必要。詳細は下記18番
 
 ## これまでにやったこと
 
@@ -259,6 +262,107 @@
       Playwrightの iPhone 13 デバイスエミュレーションでもコンソールエラーが
       発生しないことを確認済み。実機のiPhoneでの「ホーム画面に追加」の最終確認は
       ユーザー側で実施予定
+
+18. 締切が近いToDoのリマインダー通知(Web Push、iPhoneのPWAへの通知対応)
+    - **通知タイミング**: 毎朝8時(JST)に1回、Vercel Cron Jobsで定期実行し、
+      「今日締切」「明日締切」の両方をまとめてチェックする方式(iOS Safariには
+      決まった時刻にローカル通知を予約する仕組みがない=Notification Triggers API
+      未対応のため、サーバー側から都度プッシュを送る設計が必須)
+    - **新しいSupabaseテーブル/関数**(SQL EditorでユーザーがVault経由で設定):
+      - `push_subscriptions`テーブル(端末ごとの通知の宛先情報、RLSで本人の行のみ)
+      - `todos`に`day_before_reminder_sent` / `due_day_reminder_sent`(二重送信防止フラグ)を追加
+      - `get_due_reminders(p_secret)` / `mark_reminder_sent(p_secret, ...)` /
+        `delete_push_subscription(p_secret, ...)` — 全ユーザーを横断チェックする必要が
+        あるため`security definer`関数として実装。認証は`p_secret`引数と
+        **Supabase Vault**(`vault.decrypted_secrets`)に保存した`CRON_SECRET`を照合する形。
+        「`service_role`キーは使わない」という既存方針を崩さずに済ませるための設計
+    - **VAPID鍵・CRON_SECRET**: Supabase/Anthropicのキーと違い外部サービスは不要で、
+      `web-push generate-vapid-keys`とNode.jsの`crypto.randomBytes`でその場で生成できる。
+      `.env.local`に保存し、Vercel側の環境変数にも同じ値を追加する必要がある
+    - `public/sw.js` — Service Worker。プッシュ受信時に`showNotification()`で表示、
+      通知クリックでアプリを開く/フォーカスする処理
+    - `app/components/NotificationSettings.tsx` — 通知オン/オフの設定UI。
+      `navigator`/`window`に依存するため`ParticleBackground`と同様
+      `NotificationSettingsLoader.tsx`経由で`next/dynamic`(`ssr: false`)にして、
+      サーバーサイドレンダリング時にcrashしないようにしている。iPhoneで
+      「ホーム画面に追加」せずSafariタブのまま開いている場合は、その旨を案内する文言を表示
+      (iOSはstandalone表示時のみ通知許可をリクエストできる制約があるため)
+    - `app/notifications/actions.ts` — 購読の登録/解除、および開発中に動作確認しやすくする
+      ための「テスト通知を送る」Server Action(ユーザーからの要望で追加)
+    - `app/api/send-reminders/route.ts` — Vercel Cronから呼ばれるAPI。
+      `Authorization: Bearer $CRON_SECRET`ヘッダーを検証してから
+      `get_due_reminders`をRPC呼び出しし、`web-push`で送信。410/404
+      (購読が無効になった端末)は`delete_push_subscription`で自動クリーンアップ
+    - `vercel.json` — `crons`設定。`"0 23 * * *"`(UTC 23:00 = JST 8:00)で
+      Hobbyプランの「1日1回まで」という制限内に収まることを公式ドキュメントで確認済み
+      (Hobbyプランは時刻の厳密さは保証されないが±59分程度のズレは今回の用途では許容範囲)
+    - `app/todos/actions.ts`の`updateDueDate`で、締切日を変更した際に両方の
+      reminder_sentフラグをリセットするよう修正(カレンダーへのドラッグ移動で
+      締切日を変えた場合も、新しい日付に対して正しく再度通知されるようにするため)
+
+### トラブルシューティング記録: SQLの構文ミスと秘密情報のチャット露出
+
+この機能の実装過程で、ユーザーのレビューにより2つの問題を実装前に発見・修正した。
+
+1. **SQLの構文エラー**: 最初に提示したSQL(`get_due_reminders`等のPL/pgSQL関数)に、
+   UPDATE文が構文的に不完全な箇所があった。目視確認だけでは見逃しており、
+   以後は`libpg-query`(Postgres本体と同じ構文解析ロジックを使うnpmパッケージ)で
+   機械的に構文チェックしてから提示するように変更した(ただし、この方法は
+   関数本体=`$$...$$`の中のplpgsql制御構文までは検証できないため、その部分は
+   個々のSQL文を単体で抽出して検証し、IF/END IFなどの制御構文は手動で入念にトレースする、
+   という二段構えで対応した)
+2. **CRON_SECRETを平文でSQLに埋め込み、チャットに露出させてしまった**: 最初の実装案では
+   秘密の値を関数のソースコードに直接書いていたため、この会話のログにも値が残ってしまった。
+   ユーザーの指摘を受け、値そのものを一切チャットに出さない方式に変更(以降、値の生成後は
+   `.env.local`に直接書き込むのみで、チャット上には出さない)。会話に一度出てしまった値は
+   「漏れた」ものとして扱い、新しい値に再生成した
+
+### トラブルシューティング記録: `ALTER DATABASE ... SET`がSupabaseで権限エラー
+
+CRON_SECRETをPostgresのデータベース単位の設定値(`current_setting`)として保存する方式を
+最初に試みたが、`alter database postgres set app.cron_secret = '...'`を実行したところ
+`ERROR: 42501: permission denied to set parameter "app.cron_secret"`となった。
+
+原因は、Supabaseのようなマネージド環境では、ユーザーに割り当てられる`postgres`ロールが
+実際にはスーパーユーザーではなく、データベース単位の設定変更(`ALTER DATABASE ... SET`)に
+必要な権限を持っていないため。
+
+修正は、Supabase公式の**Vault**(`supabase_vault`拡張。秘密情報を暗号化してテーブルに保存し、
+`vault.decrypted_secrets`という復号化ビュー経由でのみ読み出せる仕組み)に切り替えること。
+`security definer`関数(所有者=管理者権限で実行される)の中から`vault.decrypted_secrets`を
+参照することで、`anon`ロール自体には直接のVaultアクセス権がなくても、関数経由でなら
+正しく値を比較できる。GitHub上のSupabase Vault公式リポジトリで実際の関数シグネチャ
+(`vault.create_secret(secret, name, description)`)を確認した上で実装した。
+
+### トラブルシューティング記録: Vault登録時に余分な1文字が混入し、認証が失敗
+
+Vault切り替え後、`get_due_reminders`のRPC呼び出しが常に`unauthorized`エラーになる問題が
+発生した。`select length(decrypted_secret) from vault.decrypted_secrets where name = 'cron_secret';`
+で確認したところ、本来64文字であるべき値が65文字になっており、SQL Editorへのコピー&ペースト時に
+行末の改行文字までうっかり選択・貼り付けしてしまっていたことが原因と判明。
+`delete from vault.secrets where name = 'cron_secret';`で一度削除してから、
+改行を含めず64文字ちょうどを慎重にコピーして`vault.create_secret()`をやり直すことで解決した。
+**教訓**: Vaultや環境変数に秘密の値を手動でコピー&ペーストする際は、行末の改行や
+前後の空白を含めていないか、文字数などで検証すること。
+
+### トラブルシューティング記録: PlaywrightでのPush通知テストの限界
+
+「テスト通知を送る」ボタンを含む一連の実装をPlaywrightで検証しようとしたところ、
+2つの既知の制約に当たった。
+
+1. Playwrightの通常の`newContext()`はChromeから見て「シークレットモード」相当として
+   扱われ、Chromeはシークレットモードでのpush API利用を意図的にブロックしている
+   (`chromium.launchPersistentContext()`で永続プロファイルを使うことで回避可能)
+2. 永続プロファイルに切り替えても、Playwrightが同梱する(Google公式ブランドではない)
+   Chromiumビルドには、Google Push Serviceとの通信に必要なAPIキーが組み込まれておらず、
+   `push service not available`エラーになる。一般的なインターネット接続自体は
+   問題なく機能していることを`curl`で確認済みのため、ネットワーク制限ではなく
+   テストツール(Chromiumビルド)側の既知の制約と判断した
+
+このため、サーバー側のロジック(API認証、Supabase RPC呼び出し、Vault連携)は`curl`での
+直接テストで十分に検証できたが、「実際にブラウザでpush購読が成立し、プッシュが届く」という
+最後の部分は、実機のiPhone(またはGoogle公式ビルドのChrome)でユーザー自身に確認して
+もらう必要がある。
 
 ## デプロイ
 

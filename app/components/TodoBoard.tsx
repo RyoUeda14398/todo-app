@@ -14,6 +14,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import TodoApp from "@/app/components/TodoApp";
 import Calendar from "@/app/components/Calendar";
+import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoader";
 import type { Todo } from "@/app/components/TodoItem";
 import { addTodo, reorderTodos, updateDueDate } from "@/app/todos/actions";
 
@@ -150,17 +151,20 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 p-5 sm:p-12 lg:flex-row lg:items-start lg:gap-8">
-        <div className="w-full lg:w-[380px] lg:shrink-0">
-          <TodoApp
-            todos={optimisticTodos}
-            onAdd={handleAdd}
-            onToggle={handleToggle}
-            onDelete={handleDelete}
-          />
-        </div>
-        <div className="w-full flex-1">
-          <Calendar todos={optimisticTodos} />
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 p-5 sm:p-12">
+        <NotificationSettingsLoader />
+        <div className="flex w-full flex-1 flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
+          <div className="w-full lg:w-[380px] lg:shrink-0">
+            <TodoApp
+              todos={optimisticTodos}
+              onAdd={handleAdd}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+            />
+          </div>
+          <div className="w-full flex-1">
+            <Calendar todos={optimisticTodos} />
+          </div>
         </div>
       </div>
 
