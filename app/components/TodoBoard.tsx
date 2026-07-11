@@ -15,12 +15,15 @@ import { arrayMove } from "@dnd-kit/sortable";
 import TodoApp from "@/app/components/TodoApp";
 import Calendar from "@/app/components/Calendar";
 import KanbanBoard from "@/app/components/KanbanBoard";
+import AiChat from "@/app/components/AiChat";
 import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoader";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
+import type { ChatMessage } from "@/app/chat/actions";
 import { addTodo, reorderTodos, updateDueDate, updateTodoStatus } from "@/app/todos/actions";
 
 type TodoBoardProps = {
   todos: Todo[];
+  initialChatMessages: ChatMessage[];
 };
 
 type OptimisticAction =
@@ -51,13 +54,21 @@ function todosReducer(state: Todo[], action: OptimisticAction): Todo[] {
   }
 }
 
-export default function TodoBoard({ todos }: TodoBoardProps) {
+type ViewTab = "list" | "board-chat";
+
+const VIEW_TABS: { id: ViewTab; label: string }[] = [
+  { id: "list", label: "リスト・カレンダー" },
+  { id: "board-chat", label: "ボード・チャット" },
+];
+
+export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps) {
   const [optimisticTodos, applyOptimisticUpdate] = useOptimistic(
     todos,
     todosReducer
   );
   const [, startTransition] = useTransition();
   const [activeDragTodo, setActiveDragTodo] = useState<Todo | null>(null);
+  const [activeView, setActiveView] = useState<ViewTab>("list");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -169,22 +180,46 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 p-5 sm:p-12">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-5 sm:p-12">
         <NotificationSettingsLoader />
-        <div className="flex w-full flex-1 flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
-          <div className="w-full lg:w-[380px] lg:shrink-0">
-            <TodoApp
-              todos={optimisticTodos}
-              onAdd={handleAdd}
-              onStatusChange={handleStatusChange}
-              onDelete={handleDelete}
-            />
-          </div>
-          <div className="w-full flex-1">
-            <Calendar todos={optimisticTodos} />
+
+        <div className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-white/5">
+          {VIEW_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveView(tab.id)}
+              className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+                activeView === tab.id
+                  ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-[0_0_20px_-4px_rgba(99,102,241,0.7)]"
+                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={activeView === "list" ? "contents" : "hidden"}>
+          <div className="flex w-full flex-1 flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
+            <div className="w-full lg:w-[380px] lg:shrink-0">
+              <TodoApp
+                todos={optimisticTodos}
+                onAdd={handleAdd}
+                onStatusChange={handleStatusChange}
+                onDelete={handleDelete}
+              />
+            </div>
+            <div className="w-full flex-1">
+              <Calendar todos={optimisticTodos} />
+            </div>
           </div>
         </div>
-        <KanbanBoard todos={optimisticTodos} />
+
+        <div className={activeView === "board-chat" ? "contents" : "hidden"}>
+          <KanbanBoard todos={optimisticTodos} />
+          <AiChat initialMessages={initialChatMessages} />
+        </div>
       </div>
 
       <DragOverlay>

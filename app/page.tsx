@@ -21,6 +21,11 @@ export default async function Home() {
     .select("id, text, status, due_date")
     .order("position", { ascending: true });
 
+  const { data: chatMessages } = await supabase
+    .from("chat_messages")
+    .select("id, role, content")
+    .order("created_at", { ascending: true });
+
   return (
     <div className="relative flex min-h-screen flex-1 flex-col bg-gradient-to-b from-zinc-100/95 via-indigo-50/70 to-violet-50/90 dark:from-black dark:via-indigo-950/25 dark:to-black">
       <div className="pointer-events-none fixed inset-0 -z-20 overflow-hidden">
@@ -55,7 +60,7 @@ export default async function Home() {
       </header>
 
       <main className="flex flex-1 flex-col">
-        <TodoBoard todos={todos ?? []} />
+        <TodoBoard todos={todos ?? []} initialChatMessages={chatMessages ?? []} />
       </main>
     </div>
   );

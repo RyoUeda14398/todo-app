@@ -41,6 +41,9 @@
   見た目で起動できます
 - **締切リマインダー通知**: 毎朝、締切が今日または明日のToDoについて、プッシュ通知でお知らせします
   (ホーム画面に追加したPWAとして開いている場合、iPhoneでも通知を受け取れます)
+- **AIとチャットで操作**: 「今日は何をすべき?」「買い物のタスクを来週に延期して」のように
+  自然な文章で話しかけると、AIが状況を理解して答えたり、ToDoの追加・状態変更・締切日変更を
+  実行したりします。削除だけは、AIの返答に関わらず画面の確認ボタンを押さない限り実行されません
 
 ## 技術構成
 
@@ -88,16 +91,21 @@ todo-app/
 │   ├── notifications/
 │   │   └── actions.ts              … プッシュ通知の購読登録/解除、テスト通知の送信
 │   │
+│   ├── chat/
+│   │   └── actions.ts              … AIとのチャット処理本体(Tool UseでToDoを追加・変更・削除確認)
+│   │
 │   ├── api/
 │   │   └── send-reminders/
 │   │       └── route.ts            … 締切リマインダーを送信するAPI(Vercel Cronから毎朝呼ばれる)
 │   │
 │   └── components/                 … 画面の部品(コンポーネント)
-│       ├── TodoBoard.tsx           … ToDoリスト・カレンダー・カンバンボードをまとめ、ドラッグ&ドロップを管理する親コンポーネント
+│       ├── TodoBoard.tsx           … 「リスト・カレンダー」「ボード」「チャット」のタブ切り替えと
+│       │                              ドラッグ&ドロップを管理する親コンポーネント
 │       ├── TodoApp.tsx             … ToDoリスト本体(手入力/AIタブ、一覧表示)
 │       ├── TodoItem.tsx            … ToDo1件分の行
 │       ├── Calendar.tsx            … 月間カレンダー
 │       ├── KanbanBoard.tsx         … カンバンボード(未着手/進行中/完了の3列)
+│       ├── AiChat.tsx              … AIとのチャットUI(削除は確認ボタン経由でのみ実行)
 │       ├── ThemeToggle.tsx         … ダークモード切り替えボタン
 │       ├── LogoutButton.tsx        … ログアウトボタン
 │       ├── NotificationSettings.tsx / NotificationSettingsLoader.tsx
@@ -181,6 +189,19 @@ iPhoneのSafariでは、**iOS 16.4以降**かつ**「ホーム画面に追加」
 通知の許可をリクエストできます。また、iOSには決まった時刻にローカルで通知を予約する仕組みが
 ないため、このアプリでは**毎朝サーバー側(Vercel Cron Jobs)から、その時点で締切が近いToDoを
 チェックしてプッシュを送る**方式を採用しています。
+
+### Tool Use(AIによるツール呼び出し)
+
+「AIとチャットで操作する」機能を支える技術です。AI自身がデータベースを直接操作するわけでは
+ありません。代わりに、こちらのコードが「使える道具(ツール)の一覧」(例:
+「ToDoを追加する」「締切日を変える」)をAIに渡し、AIは会話の内容から「この道具をこの引数で
+使いたい」というリクエストを返すだけです。実際の処理(データベースへの読み書き)は、
+このアプリのサーバー側コードが安全に実行します。
+
+このアプリでは、AIが実際に削除できないように**特に念入りな設計**にしています。AIが呼び出せる
+削除系のツールは、ToDoを検索して確認情報を返すだけで、何も削除しません。実際の削除は、
+チャット画面に表示される「削除する」ボタンをユーザーがクリックした場合にのみ、
+AIを介さず直接実行されます。
 
 ## セットアップ手順
 
@@ -428,6 +449,25 @@ end;
 $$;
 
 grant execute on function delete_push_subscription(text, uuid) to anon;
+
+-- ============================================================
+-- 7. AIとのチャット履歴を保存するテーブル
+-- ============================================================
+create table public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null check (role in ('user', 'assistant')),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.chat_messages enable row level security;
+
+create policy "Users manage their own chat messages"
+  on public.chat_messages
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 ```
 
 </details>
@@ -499,6 +539,16 @@ npm run lint    # ESLintでコードをチェック
 | `endpoint` | text | プッシュサービスの宛先URL |
 | `p256dh` / `auth_key` | text | 暗号化に使う鍵情報(ブラウザが自動生成) |
 | `created_at` | timestamptz | 登録日時 |
+
+**`chat_messages`** — AIとの会話履歴
+
+| 列名 | 型 | 説明 |
+|---|---|---|
+| `id` | uuid | 主キー |
+| `user_id` | uuid | 所有者 |
+| `role` | text | `user`(ユーザーの発言)または`assistant`(AIの返答) |
+| `content` | text | 発言内容 |
+| `created_at` | timestamptz | 発言日時 |
 
 ## デプロイについて
 
