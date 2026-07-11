@@ -54,7 +54,10 @@ export async function updateTodoStatus(
 
   await supabase
     .from("todos")
-    .update({ status })
+    .update({
+      status,
+      completed_at: status === "completed" ? new Date().toISOString() : null,
+    })
     .eq("id", id)
     .eq("user_id", user.id);
 
@@ -100,12 +103,25 @@ export async function updateDueDate(id: string, dueDate: string | null) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
+  const { data: existing } = await supabase
+    .from("todos")
+    .select("due_date")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // "Postponed" means pushed back to a later date, not just any change
+  // (moving a due date earlier, or clearing it, isn't procrastination).
+  const isPostponed =
+    dueDate !== null && !!existing?.due_date && dueDate > existing.due_date;
+
   await supabase
     .from("todos")
     .update({
       due_date: dueDate,
       day_before_reminder_sent: false,
       due_day_reminder_sent: false,
+      ...(isPostponed ? { due_date_postponed_at: new Date().toISOString() } : {}),
     })
     .eq("id", id)
     .eq("user_id", user.id);

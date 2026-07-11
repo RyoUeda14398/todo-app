@@ -44,6 +44,14 @@
 - **AIとチャットで操作**: 「今日は何をすべき?」「買い物のタスクを来週に延期して」のように
   自然な文章で話しかけると、AIが状況を理解して答えたり、ToDoの追加・状態変更・締切日変更を
   実行したりします。削除だけは、AIの返答に関わらず画面の確認ボタンを押さない限り実行されません
+- **AIによるタスクの自動分解**: 「掃除というタスクを細かく分けて」のように頼むと、AIがサブタスク案
+  (最大10件)を提案します。削除と同様、画面の「登録する」ボタンを押さない限り登録されません
+- **音声でチャットに入力**: チャットのマイクボタンを押して話しかけると、ブラウザの音声認識機能で
+  自動的にテキストに変換され、入力欄に反映されます(対応ブラウザのみ)
+- **AIによる週次サマリー**: 「今週の振り返りを教えて」と聞くと、直近7日間で完了したタスク・
+  締切を先延ばしにしたタスク・現在期限切れのタスクの傾向をAIがまとめて答えます
+- **AIからの気づきの提案**: 未着手のタスクが溜まっている、期限切れのタスクがある、といった
+  状況にAIが気づくと、チャットに自発的に一言コメントを表示します(1日1回まで)
 
 ## 技術構成
 
@@ -60,6 +68,7 @@
 | アイコン | `lucide-react` | シンプルな線画アイコンの詰め合わせライブラリ |
 | フォント | Zen Kaku Gothic New(`next/font/google`経由) | 日本語グリフを含む見出し向けフォント |
 | AI機能 | Vercel AI SDK(`ai`)+ `@ai-sdk/anthropic` | 自然文からタスクを読み取るために、Anthropic社のClaude Haiku 4.5モデルを呼び出す |
+| 音声入力 | Web Speech API(ブラウザ標準機能) | 追加のライブラリやAPIキーなしで、ブラウザが直接音声をテキストに変換してくれる機能(対応ブラウザのみ) |
 | プッシュ通知 | `web-push` | ブラウザの標準機能であるWeb Push APIを使って通知を送信するためのライブラリ |
 | 入力値の検証 | `zod` | AIの応答など、外部からのデータが期待した形をしているかチェックする |
 
@@ -92,20 +101,22 @@ todo-app/
 │   │   └── actions.ts              … プッシュ通知の購読登録/解除、テスト通知の送信
 │   │
 │   ├── chat/
-│   │   └── actions.ts              … AIとのチャット処理本体(Tool UseでToDoを追加・変更・削除確認)
+│   │   └── actions.ts              … AIとのチャット処理本体(Tool UseでToDoを追加・変更・削除確認・
+│   │                                  サブタスク提案・週次サマリー・能動的な気づきの提案)
 │   │
 │   ├── api/
 │   │   └── send-reminders/
 │   │       └── route.ts            … 締切リマインダーを送信するAPI(Vercel Cronから毎朝呼ばれる)
 │   │
 │   └── components/                 … 画面の部品(コンポーネント)
-│       ├── TodoBoard.tsx           … 「リスト・カレンダー」「ボード」「チャット」のタブ切り替えと
+│       ├── TodoBoard.tsx           … 「リスト・カレンダー」「ボード・チャット」のタブ切り替えと
 │       │                              ドラッグ&ドロップを管理する親コンポーネント
 │       ├── TodoApp.tsx             … ToDoリスト本体(手入力/AIタブ、一覧表示)
 │       ├── TodoItem.tsx            … ToDo1件分の行
 │       ├── Calendar.tsx            … 月間カレンダー
 │       ├── KanbanBoard.tsx         … カンバンボード(未着手/進行中/完了の3列)
-│       ├── AiChat.tsx              … AIとのチャットUI(削除は確認ボタン経由でのみ実行)
+│       ├── AiChat.tsx              … AIとのチャットUI。削除・サブタスク登録は確認ボタン経由でのみ実行。
+│       │                              マイクボタンでの音声入力、AIからの自発的な気づきの表示も担当
 │       ├── ThemeToggle.tsx         … ダークモード切り替えボタン
 │       ├── LogoutButton.tsx        … ログアウトボタン
 │       ├── NotificationSettings.tsx / NotificationSettingsLoader.tsx
@@ -201,7 +212,8 @@ iPhoneのSafariでは、**iOS 16.4以降**かつ**「ホーム画面に追加」
 このアプリでは、AIが実際に削除できないように**特に念入りな設計**にしています。AIが呼び出せる
 削除系のツールは、ToDoを検索して確認情報を返すだけで、何も削除しません。実際の削除は、
 チャット画面に表示される「削除する」ボタンをユーザーがクリックした場合にのみ、
-AIを介さず直接実行されます。
+AIを介さず直接実行されます。タスクの自動分解(サブタスクの提案)も同じ考え方で、
+AIが呼べるのは提案するだけのツールで、実際の一括登録は「登録する」ボタン経由でのみ実行されます。
 
 ## セットアップ手順
 
@@ -280,6 +292,8 @@ create table public.todos (
   position integer not null default 0,
   day_before_reminder_sent boolean not null default false,
   due_day_reminder_sent boolean not null default false,
+  completed_at timestamptz,
+  due_date_postponed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -458,6 +472,7 @@ create table public.chat_messages (
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null check (role in ('user', 'assistant')),
   content text not null,
+  is_proactive boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -528,6 +543,8 @@ npm run lint    # ESLintでコードをチェック
 | `position` | integer | 並び順 |
 | `day_before_reminder_sent` | boolean | 「明日締切」の通知を送信済みか |
 | `due_day_reminder_sent` | boolean | 「今日締切」の通知を送信済みか |
+| `completed_at` | timestamptz | 完了した日時(週次サマリーの「今週完了したタスク」判定に使用) |
+| `due_date_postponed_at` | timestamptz | 締切日を後ろ倒しに変更した日時(週次サマリーの「先延ばし」判定に使用) |
 | `created_at` | timestamptz | 作成日時 |
 
 **`push_subscriptions`** — プッシュ通知の宛先情報(端末ごとに1行)
@@ -548,6 +565,7 @@ npm run lint    # ESLintでコードをチェック
 | `user_id` | uuid | 所有者 |
 | `role` | text | `user`(ユーザーの発言)または`assistant`(AIの返答) |
 | `content` | text | 発言内容 |
+| `is_proactive` | boolean | ユーザーに聞かれたのではなく、AIが自発的に発言したメッセージかどうか |
 | `created_at` | timestamptz | 発言日時 |
 
 ## デプロイについて

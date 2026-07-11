@@ -23,7 +23,7 @@ export default async function Home() {
 
   const { data: chatMessages } = await supabase
     .from("chat_messages")
-    .select("id, role, content")
+    .select("id, role, content, is_proactive")
     .order("created_at", { ascending: true });
 
   return (
