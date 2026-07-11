@@ -37,7 +37,7 @@ function CalendarChip({ todo }: { todo: Todo }) {
       className={`truncate rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
         isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"
       } ${
-        todo.completed
+        todo.status === "completed"
           ? "bg-zinc-100 text-zinc-400 line-through dark:bg-white/5 dark:text-zinc-500"
           : "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200"
       }`}

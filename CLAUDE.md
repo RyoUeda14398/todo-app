@@ -375,6 +375,34 @@ Vault切り替え後、`get_due_reminders`のRPC呼び出しが常に`unauthoriz
 最後の部分は、実機のiPhone(またはGoogle公式ビルドのChrome)でユーザー自身に確認して
 もらう必要がある。
 
+19. カンバンボード(3列: 未着手/進行中/完了)を追加
+    - **データベースの変更**: 今までの`completed`(true/false の2値)だけでは「進行中」を
+      表現できないため、`status`列(text型、`not_started` / `in_progress` / `completed`
+      の3値、check制約で保証)を追加。既存の`completed`値から`status`を初期化した上で、
+      `completed`列を一旦削除し、**「`status = 'completed'`のときだけtrueになる
+      自動計算列(`generated always as ... stored`)」として再作成**した。これにより、
+      締切リマインダー通知のVault保護されたSQL関数(`get_due_reminders`等)は
+      `completed`列を見ているだけなので、一切変更せずに動作し続けている
+    - **自動計算列への対応**: `completed`が自動計算列になったことで直接書き込めなくなったため、
+      `app/todos/actions.ts`の`toggleTodo`を`updateTodoStatus(id, status)`に置き換え、
+      チェックボックスのオン/オフも含めすべての完了状態の変更を`status`列の更新経由に統一した
+      (チェックボックスは今まで通り2状態のまま: オンで`completed`、オフで`not_started`に戻る。
+      「進行中」はボード上のドラッグでのみ設定可能)
+    - `app/components/TodoItem.tsx`の`Todo`型を`completed: boolean`から
+      `status: TodoStatus`(`"not_started" | "in_progress" | "completed"`)に変更。
+      これに伴い、`TodoApp.tsx`(残り件数の集計)、`Calendar.tsx`(カレンダーチップの
+      取り消し線表示)も`status`ベースの判定に書き換え
+    - `app/components/KanbanBoard.tsx`(新規)— 3列(未着手/進行中/完了)。列は
+      `useDroppable`、カードは`useDraggable`(既存の`@dnd-kit`を使用、列をまたぐ
+      ドラッグのみ対応。同じ列内でのカードの並び替えは今回のスコープ外)
+    - `TodoBoard.tsx`の共有`DndContext`の`onDragEnd`に「kanban-columnへのドロップ」の
+      分岐を追加(calendar-day/list-itemの分岐と同じ構造)。表示は、ユーザーの希望により
+      既存の「リスト+カレンダー」の横並びレイアウトはそのままに、ボードをその下に
+      3つ目のセクションとして常時表示する形にした(タブ切り替えにはしていない)
+    - 検証: Playwrightでボードへのドラッグによる状態変更・リロード後の永続化・
+      チェックボックスとの相互連動・既存のリスト並び替え/カレンダードラッグの回帰確認・
+      スマホ幅での列の縦積み・ダークモードの見た目を一通り確認済み
+
 ## デプロイ
 
 - GitHubリポジトリ: https://github.com/RyoUeda14398/todo-app

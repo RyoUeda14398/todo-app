@@ -33,6 +33,8 @@
 - **カレンダー表示**: 月間カレンダーで、締切日ごとにどのToDoがあるか一目で確認できます
 - **ドラッグ&ドロップ**: ToDoリスト内での並び替えや、ToDoをカレンダーの別の日にドラッグして
   締切日を変更できます
+- **カンバンボード**: 「未着手」「進行中」「完了」の3列にToDoを分類して表示します。
+  カードを別の列にドラッグすると状態が変わります
 - **ダークモード**: 手動で切り替え可能(設定は端末に保存され、次回訪問時も記憶されます)
 - **背景の演出**: Three.jsによる、ふわふわ漂う光の粒子演出(ダークモードで特に映えるよう調整)
 - **PWA対応**: iPhoneのSafariで「ホーム画面に追加」すると、アドレスバーのないアプリのような
@@ -91,10 +93,11 @@ todo-app/
 │   │       └── route.ts            … 締切リマインダーを送信するAPI(Vercel Cronから毎朝呼ばれる)
 │   │
 │   └── components/                 … 画面の部品(コンポーネント)
-│       ├── TodoBoard.tsx           … ToDoリストとカレンダーをまとめ、ドラッグ&ドロップを管理する親コンポーネント
+│       ├── TodoBoard.tsx           … ToDoリスト・カレンダー・カンバンボードをまとめ、ドラッグ&ドロップを管理する親コンポーネント
 │       ├── TodoApp.tsx             … ToDoリスト本体(手入力/AIタブ、一覧表示)
 │       ├── TodoItem.tsx            … ToDo1件分の行
 │       ├── Calendar.tsx            … 月間カレンダー
+│       ├── KanbanBoard.tsx         … カンバンボード(未着手/進行中/完了の3列)
 │       ├── ThemeToggle.tsx         … ダークモード切り替えボタン
 │       ├── LogoutButton.tsx        … ログアウトボタン
 │       ├── NotificationSettings.tsx / NotificationSettingsLoader.tsx
@@ -249,7 +252,9 @@ create table public.todos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   text text not null,
-  completed boolean not null default false,
+  status text not null default 'not_started'
+    check (status in ('not_started', 'in_progress', 'completed')),
+  completed boolean generated always as (status = 'completed') stored,
   due_date date,
   position integer not null default 0,
   day_before_reminder_sent boolean not null default false,
@@ -477,7 +482,8 @@ npm run lint    # ESLintでコードをチェック
 | `id` | uuid | 主キー |
 | `user_id` | uuid | 所有者(`auth.users`への外部キー) |
 | `text` | text | ToDoの内容 |
-| `completed` | boolean | 完了したかどうか |
+| `status` | text | `not_started` / `in_progress` / `completed` の3値(カンバンボードの列に対応) |
+| `completed` | boolean | `status = 'completed'`のときだけtrueになる自動計算列(生成列)。直接書き込みはできない |
 | `due_date` | date | 締切日(任意) |
 | `position` | integer | 並び順 |
 | `day_before_reminder_sent` | boolean | 「明日締切」の通知を送信済みか |

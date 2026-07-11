@@ -2,13 +2,13 @@
 
 import { useActionState, useState } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import TodoItem, { type Todo } from "@/app/components/TodoItem";
+import TodoItem, { type Todo, type TodoStatus } from "@/app/components/TodoItem";
 import { addTodoFromText, type AddTodoFromTextState } from "@/app/todos/ai-actions";
 
 type TodoAppProps = {
   todos: Todo[];
   onAdd: (formData: FormData) => void | Promise<void>;
-  onToggle: (id: string, completed: boolean) => void;
+  onStatusChange: (id: string, status: TodoStatus) => void;
   onDelete: (id: string) => void;
 };
 
@@ -19,14 +19,14 @@ function formatDueDate(dueDate: string) {
 
 const initialAiState: AddTodoFromTextState = { error: null, lastResult: null };
 
-export default function TodoApp({ todos, onAdd, onToggle, onDelete }: TodoAppProps) {
+export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: TodoAppProps) {
   const [activeTab, setActiveTab] = useState<"manual" | "ai">("manual");
   const [aiState, aiFormAction, aiPending] = useActionState(
     addTodoFromText,
     initialAiState
   );
 
-  const remainingCount = todos.filter((todo) => !todo.completed).length;
+  const remainingCount = todos.filter((todo) => todo.status !== "completed").length;
 
   return (
     <div className="w-full rounded-3xl border-2 border-indigo-200/70 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50/70 p-8 shadow-[0_25px_60px_-20px_rgba(99,102,241,0.35)] backdrop-blur-2xl sm:p-10 dark:border-indigo-400/40 dark:bg-gradient-to-br dark:from-zinc-900/80 dark:via-zinc-950/80 dark:to-indigo-950/40 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.45),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
@@ -127,7 +127,7 @@ export default function TodoApp({ todos, onAdd, onToggle, onDelete }: TodoAppPro
                 <TodoItem
                   key={todo.id}
                   todo={todo}
-                  onToggle={onToggle}
+                  onStatusChange={onStatusChange}
                   onDelete={onDelete}
                 />
               ))}

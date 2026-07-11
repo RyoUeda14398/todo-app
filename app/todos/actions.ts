@@ -31,14 +31,21 @@ export async function addTodo(formData: FormData) {
 
   const position = await getNextPosition(supabase, user.id);
 
-  await supabase
-    .from("todos")
-    .insert({ text, due_date: dueDate || null, position, user_id: user.id });
+  await supabase.from("todos").insert({
+    text,
+    due_date: dueDate || null,
+    position,
+    status: "not_started",
+    user_id: user.id,
+  });
 
   revalidatePath("/");
 }
 
-export async function toggleTodo(id: string, completed: boolean) {
+export async function updateTodoStatus(
+  id: string,
+  status: "not_started" | "in_progress" | "completed"
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,7 +54,7 @@ export async function toggleTodo(id: string, completed: boolean) {
 
   await supabase
     .from("todos")
-    .update({ completed })
+    .update({ status })
     .eq("id", id)
     .eq("user_id", user.id);
 

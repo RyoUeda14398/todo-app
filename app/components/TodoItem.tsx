@@ -3,19 +3,21 @@
 import { useTransition } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { toggleTodo, deleteTodo } from "@/app/todos/actions";
+import { updateTodoStatus, deleteTodo } from "@/app/todos/actions";
 import { getTodayInJST } from "@/lib/date";
+
+export type TodoStatus = "not_started" | "in_progress" | "completed";
 
 export type Todo = {
   id: string;
   text: string;
-  completed: boolean;
+  status: TodoStatus;
   due_date: string | null;
 };
 
 type TodoItemProps = {
   todo: Todo;
-  onToggle: (id: string, completed: boolean) => void;
+  onStatusChange: (id: string, status: TodoStatus) => void;
   onDelete: (id: string) => void;
 };
 
@@ -28,9 +30,10 @@ function isOverdue(dueDate: string) {
   return dueDate < getTodayInJST();
 }
 
-export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
-  const overdue = !todo.completed && todo.due_date !== null && isOverdue(todo.due_date);
+  const isCompleted = todo.status === "completed";
+  const overdue = !isCompleted && todo.due_date !== null && isOverdue(todo.due_date);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: todo.id, data: { type: "list-item" } });
@@ -66,13 +69,13 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
       </button>
       <input
         type="checkbox"
-        checked={todo.completed}
+        checked={isCompleted}
         disabled={isPending}
         onChange={() => {
-          const nextCompleted = !todo.completed;
+          const nextStatus: TodoStatus = isCompleted ? "not_started" : "completed";
           startTransition(async () => {
-            onToggle(todo.id, nextCompleted);
-            await toggleTodo(todo.id, nextCompleted);
+            onStatusChange(todo.id, nextStatus);
+            await updateTodoStatus(todo.id, nextStatus);
           });
         }}
         className="h-5 w-5 shrink-0 accent-indigo-600 transition-transform active:scale-90"
@@ -80,7 +83,7 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
       />
       <span
         className={`flex-1 break-words transition-all duration-300 ${
-          todo.completed
+          isCompleted
             ? "text-zinc-400 line-through dark:text-zinc-600"
             : "text-zinc-900 dark:text-zinc-50"
         }`}

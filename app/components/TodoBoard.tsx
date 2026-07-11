@@ -14,9 +14,10 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import TodoApp from "@/app/components/TodoApp";
 import Calendar from "@/app/components/Calendar";
+import KanbanBoard from "@/app/components/KanbanBoard";
 import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoader";
-import type { Todo } from "@/app/components/TodoItem";
-import { addTodo, reorderTodos, updateDueDate } from "@/app/todos/actions";
+import type { Todo, TodoStatus } from "@/app/components/TodoItem";
+import { addTodo, reorderTodos, updateDueDate, updateTodoStatus } from "@/app/todos/actions";
 
 type TodoBoardProps = {
   todos: Todo[];
@@ -24,7 +25,7 @@ type TodoBoardProps = {
 
 type OptimisticAction =
   | { type: "add"; todo: Todo }
-  | { type: "toggle"; id: string; completed: boolean }
+  | { type: "status"; id: string; status: TodoStatus }
   | { type: "delete"; id: string }
   | { type: "reorder"; todos: Todo[] }
   | { type: "moveDate"; id: string; due_date: string | null };
@@ -33,9 +34,9 @@ function todosReducer(state: Todo[], action: OptimisticAction): Todo[] {
   switch (action.type) {
     case "add":
       return [...state, action.todo];
-    case "toggle":
+    case "status":
       return state.map((todo) =>
-        todo.id === action.id ? { ...todo, completed: action.completed } : todo
+        todo.id === action.id ? { ...todo, status: action.status } : todo
       );
     case "delete":
       return state.filter((todo) => todo.id !== action.id);
@@ -75,15 +76,15 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
       todo: {
         id: crypto.randomUUID(),
         text,
-        completed: false,
+        status: "not_started",
         due_date: dueDate || null,
       },
     });
     await addTodo(formData);
   }
 
-  function handleToggle(id: string, completed: boolean) {
-    applyOptimisticUpdate({ type: "toggle", id, completed });
+  function handleStatusChange(id: string, status: TodoStatus) {
+    applyOptimisticUpdate({ type: "status", id, status });
   }
 
   function handleDelete(id: string) {
@@ -108,7 +109,7 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
       | { type: string; todoId?: string }
       | undefined;
     const overData = over.data.current as
-      | { type: string; dateKey?: string }
+      | { type: string; dateKey?: string; status?: TodoStatus }
       | undefined;
 
     // Dropped onto a calendar day cell: update the due date, regardless of
@@ -126,6 +127,23 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
         applyOptimisticUpdate({ type: "moveDate", id: todoId, due_date: newDate });
       });
       updateDueDate(todoId, newDate);
+      return;
+    }
+
+    // Dropped onto a kanban board column: update the status.
+    if (overData?.type === "kanban-column" && overData.status) {
+      const todoId =
+        activeData?.type === "kanban-card" && activeData.todoId
+          ? activeData.todoId
+          : String(active.id);
+      const newStatus = overData.status;
+      const todo = optimisticTodos.find((t) => t.id === todoId);
+      if (!todo || todo.status === newStatus) return;
+
+      startTransition(() => {
+        applyOptimisticUpdate({ type: "status", id: todoId, status: newStatus });
+      });
+      updateTodoStatus(todoId, newStatus);
       return;
     }
 
@@ -158,7 +176,7 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
             <TodoApp
               todos={optimisticTodos}
               onAdd={handleAdd}
-              onToggle={handleToggle}
+              onStatusChange={handleStatusChange}
               onDelete={handleDelete}
             />
           </div>
@@ -166,6 +184,7 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
             <Calendar todos={optimisticTodos} />
           </div>
         </div>
+        <KanbanBoard todos={optimisticTodos} />
       </div>
 
       <DragOverlay>
