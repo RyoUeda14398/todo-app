@@ -32,7 +32,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-      className="rounded-lg p-2 text-lg text-zinc-500 transition-all hover:bg-zinc-200 active:scale-90 dark:text-zinc-400 dark:hover:bg-white/10"
+      className="rounded-full border border-indigo-200/60 bg-white/50 p-2 text-lg text-zinc-500 backdrop-blur-md transition-all hover:border-indigo-300 hover:shadow-[0_0_16px_-2px_rgba(99,102,241,0.6)] active:scale-90 dark:border-indigo-400/20 dark:bg-white/5 dark:text-zinc-300 dark:hover:border-indigo-400/50 dark:hover:shadow-[0_0_16px_-2px_rgba(129,140,248,0.6)]"
       suppressHydrationWarning
     >
       <span suppressHydrationWarning>{isDark ? "☀️" : "🌙"}</span>

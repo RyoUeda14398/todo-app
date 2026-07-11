@@ -34,7 +34,7 @@ function CalendarChip({ todo }: { todo: Todo }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`truncate rounded-md px-1 text-[10px] leading-tight transition-all hover:scale-[1.03] ${
+      className={`truncate rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
         isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"
       } ${
         todo.completed
@@ -63,23 +63,26 @@ function DayCell({
 
   const visibleTodos = dayTodos.slice(0, 3);
   const hiddenCount = dayTodos.length - visibleTodos.length;
+  const hasTodos = dayTodos.length > 0;
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[4.5rem] flex-col gap-1 rounded-lg border p-1 text-left transition-colors sm:min-h-24 sm:p-1.5 ${
+      className={`flex min-h-[5rem] flex-col gap-1 rounded-lg border p-1.5 text-left transition-all sm:min-h-28 sm:p-2 ${
         isOver
           ? "border-indigo-500 bg-indigo-100/70 dark:border-indigo-400 dark:bg-indigo-500/20"
           : isToday
-            ? "border-indigo-400 bg-indigo-50/60 dark:border-indigo-400/60 dark:bg-indigo-500/10"
-            : "border-zinc-200 hover:border-zinc-300 dark:border-white/10 dark:hover:border-white/25"
+            ? "border-indigo-400 bg-indigo-50/60 dark:border-indigo-400/60 dark:bg-indigo-500/15"
+            : hasTodos
+              ? "border-indigo-200 border-l-4 border-l-indigo-500 bg-indigo-50/50 shadow-[0_0_12px_-4px_rgba(99,102,241,0.4)] hover:-translate-y-0.5 hover:bg-indigo-50/80 hover:shadow-[0_0_16px_-3px_rgba(99,102,241,0.6)] dark:border-white/20 dark:border-l-indigo-400 dark:bg-indigo-500/[0.08] dark:shadow-[0_0_12px_-4px_rgba(129,140,248,0.4)] dark:hover:bg-indigo-500/[0.14] dark:hover:shadow-[0_0_16px_-3px_rgba(129,140,248,0.6)]"
+              : "border-zinc-200 bg-zinc-50/60 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-md dark:border-white/20 dark:bg-white/[0.03] dark:hover:border-indigo-400/40 dark:hover:bg-white/[0.06]"
       }`}
     >
       <span
-        className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold sm:h-8 sm:w-8 sm:text-base ${
           isToday
-            ? "bg-indigo-600 font-bold text-white dark:bg-indigo-500"
-            : "text-zinc-400 dark:text-zinc-500"
+            ? "bg-indigo-600 text-white shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)] dark:bg-indigo-500"
+            : "text-zinc-500 dark:text-zinc-400"
         }`}
       >
         {cell.day}
@@ -150,8 +153,8 @@ export default function Calendar({ todos }: CalendarProps) {
   }
 
   return (
-    <div className="w-full rounded-3xl border border-zinc-200/80 bg-white/90 p-4 shadow-xl shadow-zinc-200/60 backdrop-blur-md sm:p-6 dark:border-white/10 dark:bg-zinc-950/70 dark:shadow-[0_0_40px_-15px_rgba(99,102,241,0.4)]">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="w-full rounded-3xl border-2 border-indigo-200/70 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50/70 p-6 shadow-[0_25px_60px_-20px_rgba(99,102,241,0.35)] backdrop-blur-2xl sm:p-8 dark:border-indigo-400/40 dark:bg-gradient-to-br dark:from-zinc-900/80 dark:via-zinc-950/80 dark:to-indigo-950/40 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.45),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="mb-6 flex items-center justify-between">
         <button
           type="button"
           onClick={goToPrevMonth}
@@ -163,7 +166,7 @@ export default function Calendar({ todos }: CalendarProps) {
         <button
           type="button"
           onClick={goToToday}
-          className="text-lg font-bold tracking-tight text-zinc-900 transition-colors hover:text-indigo-600 dark:text-zinc-50 dark:hover:text-indigo-300"
+          className="text-2xl font-black tracking-tight text-zinc-900 transition-colors hover:text-indigo-600 sm:text-3xl dark:text-zinc-50 dark:hover:text-indigo-300"
         >
           {year}年{monthIndex + 1}月
         </button>
@@ -177,7 +180,7 @@ export default function Calendar({ todos }: CalendarProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-zinc-400 dark:text-zinc-500">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-zinc-400 dark:text-zinc-500">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-1">
             {label}
@@ -185,7 +188,7 @@ export default function Calendar({ todos }: CalendarProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, i) => {
           if (!cell) return <div key={`empty-${i}`} />;
           return (

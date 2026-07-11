@@ -11,8 +11,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center bg-gradient-to-b from-zinc-100 via-zinc-100 to-indigo-50 p-6 dark:from-black dark:via-indigo-950/25 dark:to-black">
-      <div className="w-full max-w-sm rounded-3xl border border-zinc-200/80 bg-white/90 p-6 shadow-xl shadow-zinc-200/60 backdrop-blur-md dark:border-white/10 dark:bg-zinc-950/70 dark:shadow-[0_0_40px_-15px_rgba(99,102,241,0.4)]">
-        <h1 className="mb-6 text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <div className="w-full max-w-sm rounded-3xl border-2 border-indigo-200/70 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50/70 p-8 shadow-[0_25px_60px_-20px_rgba(99,102,241,0.35)] backdrop-blur-2xl dark:border-indigo-400/40 dark:bg-gradient-to-br dark:from-zinc-900/80 dark:via-zinc-950/80 dark:to-indigo-950/40 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.45),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <h1 className="mb-8 text-3xl font-black tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
           📝 ログイン
         </h1>
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
-              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25"
             />
           </div>
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-zinc-50"
+              className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25"
             />
           </div>
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={pending}
-            className="mt-2 rounded-xl bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm shadow-indigo-600/30 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50 dark:shadow-indigo-500/40 dark:hover:shadow-indigo-500/60"
+            className="mt-2 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_20px_-4px_rgba(99,102,241,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_-4px_rgba(99,102,241,0.8)] active:translate-y-0 active:scale-95 disabled:opacity-50 dark:shadow-[0_0_20px_-4px_rgba(129,140,248,0.6)] dark:hover:shadow-[0_0_30px_-4px_rgba(129,140,248,0.8)]"
           >
             {pending ? "ログイン中..." : "ログイン"}
           </button>

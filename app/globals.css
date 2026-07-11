@@ -40,8 +40,23 @@ body {
   animation: todo-in 0.25s ease-out;
 }
 
+@keyframes blob-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(3%, 4%) scale(1.08);
+  }
+}
+
+.animate-blob {
+  animation: blob-drift 16s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-todo-in {
+  .animate-todo-in,
+  .animate-blob {
     animation: none;
   }
 }

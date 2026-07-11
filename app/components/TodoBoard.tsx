@@ -150,8 +150,8 @@ export default function TodoBoard({ todos }: TodoBoardProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 sm:p-8 lg:flex-row lg:items-start">
-        <div className="w-full lg:w-[420px] lg:shrink-0">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 p-5 sm:p-12 lg:flex-row lg:items-start lg:gap-8">
+        <div className="w-full lg:w-[380px] lg:shrink-0">
           <TodoApp
             todos={optimisticTodos}
             onAdd={handleAdd}

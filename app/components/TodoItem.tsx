@@ -44,7 +44,7 @@ export default function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
     <li
       ref={setNodeRef}
       style={style}
-      className={`animate-todo-in flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-indigo-400/40 dark:hover:bg-white/[0.07] ${
+      className={`animate-todo-in flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md dark:border-indigo-400/25 dark:bg-transparent dark:bg-gradient-to-br dark:from-white/[0.06] dark:to-indigo-500/[0.03] dark:hover:border-indigo-400/60 dark:hover:from-white/[0.09] ${
         isDragging ? "opacity-40" : ""
       }`}
     >
