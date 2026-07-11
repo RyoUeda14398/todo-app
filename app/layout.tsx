@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Zen_Kaku_Gothic_New } from "next/font/google";
 import "./globals.css";
 
@@ -11,6 +11,20 @@ const zenKakuGothicNew = Zen_Kaku_Gothic_New({
 export const metadata: Metadata = {
   title: "ToDoアプリ",
   description: "認証つきToDoアプリ（開発中）",
+  appleWebApp: {
+    title: "ToDo.",
+    statusBarStyle: "black-translucent",
+  },
+  other: {
+    // iOS Safari's own flag for "launch from the home screen without the
+    // Safari address bar / toolbar" — the appleWebApp field above doesn't
+    // emit this legacy (but still required on iOS) tag by itself.
+    "apple-mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
 };
 
 export default function RootLayout({

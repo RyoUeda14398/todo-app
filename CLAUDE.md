@@ -239,6 +239,27 @@
       ToDoアプリらしい`ListTodo`アイコンに変更。ロゴの発光効果(drop-shadow)も適用
     - ヘッダーの「ToDo.」ロゴ文字を`text-2xl`→`text-3xl sm:text-4xl`に拡大
 
+17. iPhoneのホーム画面に追加できるPWA(Progressive Web App)対応
+    - `app/manifest.ts` — アプリ名・アイコン・`display: "standalone"`(アドレスバーなしの
+      全画面表示)などを記述するWeb App Manifest。Next.jsのファイル規約により、
+      `<link rel="manifest">`タグが自動で`<head>`に追加される
+    - `app/icon.tsx` / `app/apple-icon.tsx` — 画像ファイルを用意する代わりに、
+      `next/og`の`ImageResponse`でコードからアイコンを生成。中身は
+      `lucide-react`の`ListTodo`アイコン(ヘッダーと同じもの)をindigo→violet
+      グラデーションの上に配置したもの。`icon.tsx`は角丸(通常のfavicon/PWAアイコン用)、
+      `apple-icon.tsx`は角を丸めない正方形(iOS側で自動的に角丸マスクが掛かる仕様のため)
+      で、透過なしの不透明な背景にしている
+    - `app/layout.tsx`に`appleWebApp`(ホーム画面起動時のタイトル・ステータスバーの
+      見た目)と`other: {"apple-mobile-web-app-capable": "yes"}`を追加。この
+      `apple-mobile-web-app-capable`が、ホーム画面から起動したときにSafariの
+      アドレスバーを消して全画面のアプリらしい見た目にするための一番重要な指定
+    - あわせて`viewport`に`themeColor: "#4f46e5"`(indigo)を設定
+    - 検証: `curl`でNext.jsが生成した`<head>`のタグ(manifest/icon/apple-touch-icon/
+      各種meta)が正しく出力されていることと、生成された各アイコン画像を実際に確認。
+      Playwrightの iPhone 13 デバイスエミュレーションでもコンソールエラーが
+      発生しないことを確認済み。実機のiPhoneでの「ホーム画面に追加」の最終確認は
+      ユーザー側で実施予定
+
 ## デプロイ
 
 - GitHubリポジトリ: https://github.com/RyoUeda14398/todo-app
