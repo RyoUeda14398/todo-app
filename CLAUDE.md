@@ -4,15 +4,26 @@
 
 認証つきToDoアプリ。初心者ユーザー向けに、各ステップを説明しながら進めている。
 
+> **beginner向けの説明はREADME.mdへ**: 機能一覧・用語解説・セットアップ手順・データベース
+> スキーマなど、人間(特に初心者)が読んで理解するための説明は`README.md`に整理してある。
+> このCLAUDE.mdは、AIアシスタントが作業を引き継ぐための技術的な申し送り事項と、
+> これまでの開発履歴・トラブルシューティング記録を時系列で残すためのファイル。
+
 ## 技術構成
 
 - Next.js 16 (App Router, TypeScript)
 - React 19
 - Tailwind CSS 4
 - 認証: Supabase Auth(メール+パスワード)
-- データベース: Supabase PostgreSQL(`todos`テーブルにToDoを保存。`id`, `user_id`, `text`,
-  `completed`, `due_date`(締切日、任意), `position`(並び順、整数), `created_at`。
-  Row Level Securityでユーザーごとに分離)
+- データベース: Supabase PostgreSQL。RLSでユーザーごとにデータを分離(詳細なテーブル定義は
+  README.mdの「データベース構成の詳細」を参照)
+  - `todos`テーブル: `id`, `user_id`, `text`, `completed`, `due_date`(締切日、任意),
+    `position`(並び順、整数), `day_before_reminder_sent` / `due_day_reminder_sent`
+    (リマインダー送信済みフラグ), `created_at`
+  - `push_subscriptions`テーブル: プッシュ通知の宛先情報(端末ごと)
+  - `get_due_reminders` / `mark_reminder_sent` / `delete_push_subscription`:
+    全ユーザー横断でリマインダー対象を調べる`security definer`関数(Supabase Vaultで
+    保護。詳細は下記18番およびREADME.mdを参照)
 - ドラッグ&ドロップ: `@dnd-kit/core` / `@dnd-kit/sortable` / `@dnd-kit/utilities`
 - 背景演出: `three` / `@react-three/fiber` / `@react-three/drei`(`Sparkles`でパーティクル背景)
 - アイコン: `lucide-react`(ヘッダーロゴの`ListTodo`アイコンで使用)
