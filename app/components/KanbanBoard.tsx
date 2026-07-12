@@ -2,6 +2,7 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
+import { getDueStatus } from "@/lib/date";
 
 type KanbanBoardProps = {
   todos: Todo[];
@@ -24,6 +25,8 @@ function KanbanCard({ todo }: { todo: Todo }) {
     data: { type: "kanban-card", todoId: todo.id },
   });
 
+  const dueStatus = getDueStatus(todo.due_date, todo.status === "completed");
+
   return (
     <div
       ref={setNodeRef}
@@ -35,7 +38,17 @@ function KanbanCard({ todo }: { todo: Todo }) {
     >
       <p className="break-words text-zinc-900 dark:text-zinc-50">{todo.text}</p>
       {todo.due_date && (
-        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+        <p
+          className={`mt-1 text-xs ${
+            dueStatus === "overdue"
+              ? "font-medium text-red-600 dark:text-red-400"
+              : dueStatus === "today"
+                ? "font-medium text-orange-600 dark:text-orange-400"
+                : dueStatus === "soon"
+                  ? "font-medium text-amber-600 dark:text-amber-500"
+                  : "text-zinc-400 dark:text-zinc-500"
+          }`}
+        >
           {formatDueDate(todo.due_date)}
         </p>
       )}

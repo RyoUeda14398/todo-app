@@ -16,3 +16,27 @@ const jstDateFormatter = new Intl.DateTimeFormat("en-CA", {
 export function getTodayInJST(date: Date = new Date()): string {
   return jstDateFormatter.format(date);
 }
+
+export type DueStatus = "overdue" | "today" | "soon" | null;
+
+const SOON_WINDOW_DAYS = 3;
+
+/**
+ * Classifies a due date (YYYY-MM-DD) relative to today in JST, for
+ * highlighting in the todo list/board. Returns null for completed todos,
+ * todos with no due date, or due dates more than SOON_WINDOW_DAYS away.
+ */
+export function getDueStatus(dueDate: string | null, isCompleted: boolean): DueStatus {
+  if (!dueDate || isCompleted) return null;
+
+  const today = getTodayInJST();
+  if (dueDate < today) return "overdue";
+  if (dueDate === today) return "today";
+
+  const soonLimit = getTodayInJST(
+    new Date(Date.now() + SOON_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+  );
+  if (dueDate <= soonLimit) return "soon";
+
+  return null;
+}

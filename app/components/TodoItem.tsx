@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateTodoStatus, deleteTodo } from "@/app/todos/actions";
-import { getTodayInJST } from "@/lib/date";
+import { getDueStatus } from "@/lib/date";
 
 export type TodoStatus = "not_started" | "in_progress" | "completed";
 
@@ -26,14 +26,10 @@ function formatDueDate(dueDate: string) {
   return `${year}/${month}/${day}`;
 }
 
-function isOverdue(dueDate: string) {
-  return dueDate < getTodayInJST();
-}
-
 export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
   const isCompleted = todo.status === "completed";
-  const overdue = !isCompleted && todo.due_date !== null && isOverdue(todo.due_date);
+  const dueStatus = getDueStatus(todo.due_date, isCompleted);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: todo.id, data: { type: "list-item" } });
@@ -93,9 +89,13 @@ export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemPro
       {todo.due_date && (
         <span
           className={`shrink-0 text-xs ${
-            overdue
+            dueStatus === "overdue"
               ? "font-medium text-red-600 dark:text-red-400"
-              : "text-zinc-400 dark:text-zinc-500"
+              : dueStatus === "today"
+                ? "font-medium text-orange-600 dark:text-orange-400"
+                : dueStatus === "soon"
+                  ? "font-medium text-amber-600 dark:text-amber-500"
+                  : "text-zinc-400 dark:text-zinc-500"
           }`}
         >
           {formatDueDate(todo.due_date)}
