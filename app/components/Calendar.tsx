@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import holiday_jp from "@holiday-jp/holiday_jp";
 import type { Todo } from "@/app/components/TodoItem";
 
 type CalendarProps = {
@@ -51,10 +52,12 @@ function DayCell({
   cell,
   isToday,
   dayTodos,
+  holidayName,
 }: {
   cell: Cell;
   isToday: boolean;
   dayTodos: Todo[];
+  holidayName: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${cell.dateKey}`,
@@ -81,13 +84,22 @@ function DayCell({
       <span
         className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold sm:h-8 sm:w-8 sm:text-base ${
           isToday
-            ? "bg-indigo-600 text-white shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)] dark:bg-indigo-500"
-            : "text-zinc-500 dark:text-zinc-400"
+            ? holidayName
+              ? "bg-indigo-600 text-rose-200 shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)] dark:bg-indigo-500"
+              : "bg-indigo-600 text-white shadow-[0_0_16px_-2px_rgba(99,102,241,0.7)] dark:bg-indigo-500"
+            : holidayName
+              ? "text-rose-600 dark:text-rose-400"
+              : "text-zinc-500 dark:text-zinc-400"
         }`}
       >
         {cell.day}
       </span>
       <div className="flex flex-col gap-0.5 overflow-hidden">
+        {holidayName && (
+          <span className="truncate text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+            {holidayName}
+          </span>
+        )}
         {visibleTodos.map((todo) => (
           <CalendarChip key={todo.id} todo={todo} />
         ))}
@@ -126,6 +138,18 @@ export default function Calendar({ todos }: CalendarProps) {
     cells.push({ day, dateKey: toDateKey(year, monthIndex, day) });
   }
   while (cells.length % 7 !== 0) cells.push(null);
+
+  const holidaysByDate = new Map<string, string>();
+  const monthStart = new Date(Date.UTC(year, monthIndex, 1));
+  const monthEnd = new Date(Date.UTC(year, monthIndex + 1, 0));
+  for (const holiday of holiday_jp.between(monthStart, monthEnd)) {
+    const key = toDateKey(
+      holiday.date.getUTCFullYear(),
+      holiday.date.getUTCMonth(),
+      holiday.date.getUTCDate()
+    );
+    holidaysByDate.set(key, holiday.name);
+  }
 
   const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -197,6 +221,7 @@ export default function Calendar({ todos }: CalendarProps) {
               cell={cell}
               isToday={cell.dateKey === todayKey}
               dayTodos={todosByDate.get(cell.dateKey) ?? []}
+              holidayName={holidaysByDate.get(cell.dateKey) ?? null}
             />
           );
         })}
