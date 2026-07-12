@@ -88,6 +88,12 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
             required
             rows={2}
             placeholder="例: 明日の18時までに買い物する"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
             className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25"
           />
           <button
