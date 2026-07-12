@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isTodoColor } from "@/lib/todoColors";
 
 async function getNextPosition(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -22,6 +23,8 @@ export async function addTodo(formData: FormData) {
   if (!text) return;
 
   const dueDate = String(formData.get("due_date") ?? "").trim();
+  const colorInput = String(formData.get("color") ?? "").trim();
+  const color = isTodoColor(colorInput) ? colorInput : null;
 
   const supabase = await createClient();
   const {
@@ -34,6 +37,7 @@ export async function addTodo(formData: FormData) {
   await supabase.from("todos").insert({
     text,
     due_date: dueDate || null,
+    color,
     position,
     status: "not_started",
     user_id: user.id,

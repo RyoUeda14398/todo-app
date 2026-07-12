@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import holiday_jp from "@holiday-jp/holiday_jp";
 import type { Todo } from "@/app/components/TodoItem";
+import { getTodoColorChipClass } from "@/lib/todoColors";
 
 type CalendarProps = {
   todos: Todo[];
@@ -30,6 +31,8 @@ function CalendarChip({ todo }: { todo: Todo }) {
     data: { type: "calendar-chip", todoId: todo.id },
   });
 
+  const colorChipClass = getTodoColorChipClass(todo.color);
+
   return (
     <span
       ref={setNodeRef}
@@ -40,7 +43,7 @@ function CalendarChip({ todo }: { todo: Todo }) {
       } ${
         todo.status === "completed"
           ? "bg-zinc-100 text-zinc-400 line-through dark:bg-white/5 dark:text-zinc-500"
-          : "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200"
+          : (colorChipClass ?? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200")
       }`}
     >
       {todo.text}

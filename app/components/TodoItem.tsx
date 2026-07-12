@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateTodoStatus, deleteTodo } from "@/app/todos/actions";
 import { getDueStatus } from "@/lib/date";
+import { getTodoColorDotClass } from "@/lib/todoColors";
 
 export type TodoStatus = "not_started" | "in_progress" | "completed";
 
@@ -13,6 +14,7 @@ export type Todo = {
   text: string;
   status: TodoStatus;
   due_date: string | null;
+  color: string | null;
 };
 
 type TodoItemProps = {
@@ -30,6 +32,7 @@ export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemPro
   const [isPending, startTransition] = useTransition();
   const isCompleted = todo.status === "completed";
   const dueStatus = getDueStatus(todo.due_date, isCompleted);
+  const colorDotClass = getTodoColorDotClass(todo.color);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: todo.id, data: { type: "list-item" } });
@@ -77,6 +80,12 @@ export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemPro
         className="h-5 w-5 shrink-0 accent-indigo-600 transition-transform active:scale-90"
         aria-label={`${todo.text} を完了にする`}
       />
+      {colorDotClass && (
+        <span
+          className={`h-2.5 w-2.5 shrink-0 rounded-full ${colorDotClass}`}
+          aria-hidden
+        />
+      )}
       <span
         className={`flex-1 break-words transition-all duration-300 ${
           isCompleted

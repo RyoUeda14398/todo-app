@@ -3,6 +3,7 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
 import { getDueStatus } from "@/lib/date";
+import { getTodoColorDotClass } from "@/lib/todoColors";
 
 type KanbanBoardProps = {
   todos: Todo[];
@@ -26,6 +27,7 @@ function KanbanCard({ todo }: { todo: Todo }) {
   });
 
   const dueStatus = getDueStatus(todo.due_date, todo.status === "completed");
+  const colorDotClass = getTodoColorDotClass(todo.color);
 
   return (
     <div
@@ -36,7 +38,15 @@ function KanbanCard({ todo }: { todo: Todo }) {
         isDragging ? "opacity-30" : ""
       }`}
     >
-      <p className="break-words text-zinc-900 dark:text-zinc-50">{todo.text}</p>
+      <p className="flex items-start gap-1.5 text-zinc-900 dark:text-zinc-50">
+        {colorDotClass && (
+          <span
+            className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${colorDotClass}`}
+            aria-hidden
+          />
+        )}
+        <span className="break-words">{todo.text}</span>
+      </p>
       {todo.due_date && (
         <p
           className={`mt-1 text-xs ${

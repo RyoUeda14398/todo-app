@@ -81,6 +81,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
     if (!text) return;
 
     const dueDate = String(formData.get("due_date") ?? "").trim();
+    const color = String(formData.get("color") ?? "").trim();
 
     applyOptimisticUpdate({
       type: "add",
@@ -89,6 +90,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         text,
         status: "not_started",
         due_date: dueDate || null,
+        color: color || null,
       },
     });
     await addTodo(formData);

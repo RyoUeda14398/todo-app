@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import TodoItem, { type Todo, type TodoStatus } from "@/app/components/TodoItem";
 import { addTodoFromText, type AddTodoFromTextState } from "@/app/todos/ai-actions";
+import { TODO_COLORS } from "@/lib/todoColors";
 
 type TodoAppProps = {
   todos: Todo[];
@@ -25,6 +26,25 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
     addTodoFromText,
     initialAiState
   );
+  const [manualPending, setManualPending] = useState(false);
+
+  // A plain onSubmit handler (rather than the `action` prop) is used here on
+  // purpose: React automatically resets a form again on its own once an
+  // `action` function's promise settles, and that second, delayed reset
+  // could wipe out text the user has since started typing for their next
+  // task. Handling submit ourselves keeps reset timing fully in our control.
+  function handleManualSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    e.currentTarget.reset();
+    setManualPending(true);
+    // onAdd applies an optimistic update internally, which React requires to
+    // happen inside a transition (the `action` prop provided this
+    // automatically; a plain onSubmit handler doesn't, so it's done here).
+    startTransition(() => {
+      Promise.resolve(onAdd(formData)).finally(() => setManualPending(false));
+    });
+  }
 
   const remainingCount = todos.filter((todo) => todo.status !== "completed").length;
 
@@ -60,26 +80,42 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
       </div>
 
       {activeTab === "manual" ? (
-        <form action={onAdd} className="mb-4 flex flex-wrap gap-2">
-          <input
-            type="text"
-            name="text"
-            required
-            placeholder="やることを入力..."
-            className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25"
-          />
-          <input
-            type="date"
-            name="due_date"
-            aria-label="締切日(任意)"
-            className="rounded-xl border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25 dark:[color-scheme:dark]"
-          />
-          <button
-            type="submit"
-            className="rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_20px_-4px_rgba(99,102,241,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_-4px_rgba(99,102,241,0.8)] active:translate-y-0 active:scale-95 dark:shadow-[0_0_20px_-4px_rgba(129,140,248,0.6)] dark:hover:shadow-[0_0_30px_-4px_rgba(129,140,248,0.8)]"
-          >
-            追加
-          </button>
+        <form onSubmit={handleManualSubmit} className="mb-4 flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              name="text"
+              required
+              placeholder="やることを入力..."
+              className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder:text-zinc-400 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25"
+            />
+            <input
+              type="date"
+              name="due_date"
+              aria-label="締切日(任意)"
+              className="rounded-xl border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25 dark:[color-scheme:dark]"
+            />
+            <button
+              type="submit"
+              disabled={manualPending}
+              className="rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_20px_-4px_rgba(99,102,241,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_-4px_rgba(99,102,241,0.8)] active:translate-y-0 active:scale-95 disabled:opacity-50 dark:shadow-[0_0_20px_-4px_rgba(129,140,248,0.6)] dark:hover:shadow-[0_0_30px_-4px_rgba(129,140,248,0.8)]"
+            >
+              {manualPending ? "追加中..." : "追加"}
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">色(任意):</span>
+            {TODO_COLORS.map((c) => (
+              <label key={c.value} className="cursor-pointer">
+                <input type="radio" name="color" value={c.value} className="peer sr-only" />
+                <span
+                  aria-label={c.label}
+                  title={c.label}
+                  className={`block h-6 w-6 rounded-full ring-offset-2 ring-offset-white transition-all hover:scale-110 peer-checked:ring-2 peer-checked:ring-zinc-900 dark:ring-offset-zinc-950 dark:peer-checked:ring-white ${c.dot}`}
+                />
+              </label>
+            ))}
+          </div>
         </form>
       ) : (
         <form action={aiFormAction} className="mb-4 flex flex-col gap-2">
