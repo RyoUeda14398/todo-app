@@ -17,6 +17,7 @@ import KanbanBoard from "@/app/components/KanbanBoard";
 import AiChat from "@/app/components/AiChat";
 import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoader";
 import TodoDetailModal, { type TodoUpdates } from "@/app/components/TodoDetailModal";
+import TodoAddModal, { type NewTodoData } from "@/app/components/TodoAddModal";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
 import type { ChatMessage } from "@/app/chat/actions";
 import { addTodo, deleteTodo, updateDueDate, updateTodo } from "@/app/todos/actions";
@@ -118,6 +119,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
   const detailModalTodo = detailModal
     ? (sortedTodos.find((t) => t.id === detailModal.id) ?? null)
     : null;
+  const [addModalDate, setAddModalDate] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -145,6 +147,17 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
       },
     });
     await addTodo(formData);
+  }
+
+  function handleQuickAdd(data: NewTodoData) {
+    const formData = new FormData();
+    formData.set("text", data.text);
+    formData.set("due_date", data.due_date);
+    if (data.due_time) formData.set("due_time", data.due_time);
+    if (data.color) formData.set("color", data.color);
+    startTransition(() => {
+      handleAdd(formData);
+    });
   }
 
   function handleStatusChange(id: string, status: TodoStatus) {
@@ -260,6 +273,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
             <Calendar
               todos={sortedTodos}
               onSelectTodo={(id) => setDetailModal({ id, mode: "view" })}
+              onAddTodo={(dateKey) => setAddModalDate(dateKey)}
             />
           </div>
         </div>
@@ -288,6 +302,15 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
           onClose={() => setDetailModal(null)}
           onSave={handleSaveEdit}
           onDelete={handleDelete}
+        />
+      )}
+
+      {addModalDate && (
+        <TodoAddModal
+          key={addModalDate}
+          dueDate={addModalDate}
+          onClose={() => setAddModalDate(null)}
+          onAdd={handleQuickAdd}
         />
       )}
     </DndContext>

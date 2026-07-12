@@ -9,6 +9,7 @@ import { getTodoColorChipClass } from "@/lib/todoColors";
 type CalendarProps = {
   todos: Todo[];
   onSelectTodo: (id: string) => void;
+  onAddTodo: (dateKey: string) => void;
 };
 
 type Cell = {
@@ -45,8 +46,11 @@ function CalendarChip({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      onClick={() => onSelectTodo(todo.id)}
-      className={`truncate select-none rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelectTodo(todo.id);
+      }}
+      className={`select-none break-words rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
         isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"
       } ${
         todo.status === "completed"
@@ -66,12 +70,14 @@ function DayCell({
   dayTodos,
   holidayName,
   onSelectTodo,
+  onAddTodo,
 }: {
   cell: Cell;
   isToday: boolean;
   dayTodos: Todo[];
   holidayName: string | null;
   onSelectTodo: (id: string) => void;
+  onAddTodo: (dateKey: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${cell.dateKey}`,
@@ -85,7 +91,8 @@ function DayCell({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[5rem] flex-col gap-1 rounded-lg border p-1 text-left transition-all sm:min-h-28 sm:p-1.5 ${
+      onClick={() => onAddTodo(cell.dateKey)}
+      className={`flex min-h-[5rem] cursor-pointer flex-col gap-1 rounded-lg border p-1 text-left transition-all sm:min-h-28 sm:p-1.5 ${
         isOver
           ? "border-indigo-500 bg-indigo-100/70 dark:border-indigo-400 dark:bg-indigo-500/20"
           : isToday
@@ -127,7 +134,7 @@ function DayCell({
   );
 }
 
-export default function Calendar({ todos, onSelectTodo }: CalendarProps) {
+export default function Calendar({ todos, onSelectTodo, onAddTodo }: CalendarProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [monthIndex, setMonthIndex] = useState(now.getMonth());
@@ -237,6 +244,7 @@ export default function Calendar({ todos, onSelectTodo }: CalendarProps) {
               dayTodos={todosByDate.get(cell.dateKey) ?? []}
               holidayName={holidaysByDate.get(cell.dateKey) ?? null}
               onSelectTodo={onSelectTodo}
+              onAddTodo={onAddTodo}
             />
           );
         })}
