@@ -1,9 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { updateTodoStatus, deleteTodo } from "@/app/todos/actions";
+import { useDraggable } from "@dnd-kit/core";
+import { updateTodoStatus } from "@/app/todos/actions";
 import { getDueStatus } from "@/lib/date";
 import { getTodoColorDotClass } from "@/lib/todoColors";
 
@@ -14,58 +13,47 @@ export type Todo = {
   text: string;
   status: TodoStatus;
   due_date: string | null;
+  due_time: string | null;
   color: string | null;
 };
 
 type TodoItemProps = {
   todo: Todo;
   onStatusChange: (id: string, status: TodoStatus) => void;
-  onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
 };
 
-function formatDueDate(dueDate: string) {
+function formatDueDate(dueDate: string, dueTime: string | null) {
   const [year, month, day] = dueDate.split("-");
-  return `${year}/${month}/${day}`;
+  // Postgres returns `time` values as "HH:MM:SS"; only HH:MM is shown.
+  return dueTime ? `${year}/${month}/${day} ${dueTime.slice(0, 5)}` : `${year}/${month}/${day}`;
 }
 
-export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, onStatusChange, onEdit }: TodoItemProps) {
   const [isPending, startTransition] = useTransition();
   const isCompleted = todo.status === "completed";
   const dueStatus = getDueStatus(todo.due_date, isCompleted);
   const colorDotClass = getTodoColorDotClass(todo.color);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: todo.id, data: { type: "list-item" } });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: todo.id,
+    data: { type: "list-item" },
+  });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const borderClass =
+    dueStatus === "today"
+      ? "border-4 border-red-500 dark:border-red-500"
+      : "border border-indigo-100 hover:border-indigo-300 dark:border-indigo-400/25 dark:hover:border-indigo-400/60";
 
   return (
     <li
       ref={setNodeRef}
-      style={style}
-      className={`animate-todo-in flex items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md dark:border-indigo-400/25 dark:bg-transparent dark:bg-gradient-to-br dark:from-white/[0.06] dark:to-indigo-500/[0.03] dark:hover:border-indigo-400/60 dark:hover:from-white/[0.09] ${
+      {...attributes}
+      {...listeners}
+      className={`animate-todo-in flex touch-none select-none cursor-grab items-center gap-2 rounded-xl ${borderClass} bg-white px-3 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing dark:bg-transparent dark:bg-gradient-to-br dark:from-white/[0.06] dark:to-indigo-500/[0.03] dark:hover:from-white/[0.09] ${
         isDragging ? "opacity-40" : ""
       }`}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="shrink-0 cursor-grab touch-none rounded p-1 text-zinc-300 hover:text-zinc-500 active:cursor-grabbing dark:text-zinc-600 dark:hover:text-zinc-400"
-        aria-label={`${todo.text} を並び替え`}
-      >
-        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor" aria-hidden>
-          <circle cx="3" cy="2" r="1.3" />
-          <circle cx="9" cy="2" r="1.3" />
-          <circle cx="3" cy="8" r="1.3" />
-          <circle cx="9" cy="8" r="1.3" />
-          <circle cx="3" cy="14" r="1.3" />
-          <circle cx="9" cy="14" r="1.3" />
-        </svg>
-      </button>
       <input
         type="checkbox"
         checked={isCompleted}
@@ -107,22 +95,16 @@ export default function TodoItem({ todo, onStatusChange, onDelete }: TodoItemPro
                   : "text-zinc-400 dark:text-zinc-500"
           }`}
         >
-          {formatDueDate(todo.due_date)}
+          {formatDueDate(todo.due_date, todo.due_time)}
         </span>
       )}
       <button
         type="button"
-        disabled={isPending}
-        onClick={() => {
-          startTransition(async () => {
-            onDelete(todo.id);
-            await deleteTodo(todo.id);
-          });
-        }}
-        className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950"
-        aria-label={`${todo.text} を削除`}
+        onClick={() => onEdit(todo.id)}
+        className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+        aria-label={`${todo.text} を編集`}
       >
-        削除
+        編集
       </button>
     </li>
   );

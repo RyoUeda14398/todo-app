@@ -8,6 +8,7 @@ import { getTodoColorChipClass } from "@/lib/todoColors";
 
 type CalendarProps = {
   todos: Todo[];
+  onSelectTodo: (id: string) => void;
 };
 
 type Cell = {
@@ -25,7 +26,13 @@ function toDateKey(year: number, monthIndex: number, day: number) {
   return `${year}-${pad(monthIndex + 1)}-${pad(day)}`;
 }
 
-function CalendarChip({ todo }: { todo: Todo }) {
+function CalendarChip({
+  todo,
+  onSelectTodo,
+}: {
+  todo: Todo;
+  onSelectTodo: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `chip-${todo.id}`,
     data: { type: "calendar-chip", todoId: todo.id },
@@ -38,15 +45,17 @@ function CalendarChip({ todo }: { todo: Todo }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`truncate rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
+      onClick={() => onSelectTodo(todo.id)}
+      className={`truncate select-none rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
         isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"
       } ${
         todo.status === "completed"
           ? "bg-zinc-100 text-zinc-400 line-through dark:bg-white/5 dark:text-zinc-500"
           : (colorChipClass ?? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200")
       }`}
+      title={todo.due_time ? `${todo.text} (${todo.due_time.slice(0, 5)})` : todo.text}
     >
-      {todo.text}
+      {todo.due_time ? `${todo.due_time.slice(0, 5)} ${todo.text}` : todo.text}
     </span>
   );
 }
@@ -56,11 +65,13 @@ function DayCell({
   isToday,
   dayTodos,
   holidayName,
+  onSelectTodo,
 }: {
   cell: Cell;
   isToday: boolean;
   dayTodos: Todo[];
   holidayName: string | null;
+  onSelectTodo: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${cell.dateKey}`,
@@ -74,7 +85,7 @@ function DayCell({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[5rem] flex-col gap-1 rounded-lg border p-1.5 text-left transition-all sm:min-h-28 sm:p-2 ${
+      className={`flex min-h-[5rem] flex-col gap-1 rounded-lg border p-1 text-left transition-all sm:min-h-28 sm:p-1.5 ${
         isOver
           ? "border-indigo-500 bg-indigo-100/70 dark:border-indigo-400 dark:bg-indigo-500/20"
           : isToday
@@ -104,7 +115,7 @@ function DayCell({
           </span>
         )}
         {visibleTodos.map((todo) => (
-          <CalendarChip key={todo.id} todo={todo} />
+          <CalendarChip key={todo.id} todo={todo} onSelectTodo={onSelectTodo} />
         ))}
         {hiddenCount > 0 && (
           <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
@@ -116,7 +127,7 @@ function DayCell({
   );
 }
 
-export default function Calendar({ todos }: CalendarProps) {
+export default function Calendar({ todos, onSelectTodo }: CalendarProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [monthIndex, setMonthIndex] = useState(now.getMonth());
@@ -180,8 +191,8 @@ export default function Calendar({ todos }: CalendarProps) {
   }
 
   return (
-    <div className="w-full rounded-3xl border-2 border-indigo-200/70 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50/70 p-6 shadow-[0_25px_60px_-20px_rgba(99,102,241,0.35)] backdrop-blur-2xl sm:p-8 dark:border-indigo-400/40 dark:bg-gradient-to-br dark:from-zinc-900/80 dark:via-zinc-950/80 dark:to-indigo-950/40 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.45),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="w-full rounded-3xl border-2 border-indigo-200/70 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50/70 py-6 shadow-[0_25px_60px_-20px_rgba(99,102,241,0.35)] backdrop-blur-2xl sm:py-8 dark:border-indigo-400/40 dark:bg-gradient-to-br dark:from-zinc-900/80 dark:via-zinc-950/80 dark:to-indigo-950/40 dark:shadow-[0_0_50px_-12px_rgba(99,102,241,0.45),inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+      <div className="mb-6 flex items-center justify-between px-6 sm:px-8">
         <button
           type="button"
           onClick={goToPrevMonth}
@@ -207,7 +218,7 @@ export default function Calendar({ todos }: CalendarProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-zinc-400 dark:text-zinc-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-zinc-400 dark:text-zinc-500">
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} className="py-1">
             {label}
@@ -215,7 +226,7 @@ export default function Calendar({ todos }: CalendarProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((cell, i) => {
           if (!cell) return <div key={`empty-${i}`} />;
           return (
@@ -225,6 +236,7 @@ export default function Calendar({ todos }: CalendarProps) {
               isToday={cell.dateKey === todayKey}
               dayTodos={todosByDate.get(cell.dateKey) ?? []}
               holidayName={holidaysByDate.get(cell.dateKey) ?? null}
+              onSelectTodo={onSelectTodo}
             />
           );
         })}

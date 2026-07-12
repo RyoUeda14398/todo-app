@@ -91,7 +91,8 @@ export async function sendChatMessage(
           .from("todos")
           .select("id, text, status, due_date")
           .eq("user_id", user.id)
-          .order("position", { ascending: true });
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true });
         return data ?? [];
       },
     }),
@@ -106,19 +107,9 @@ export async function sendChatMessage(
           .describe("締切日(YYYY-MM-DD形式)。締切がなければnull"),
       }),
       execute: async ({ text, due_date }) => {
-        const { data: last } = await supabase
-          .from("todos")
-          .select("position")
-          .eq("user_id", user.id)
-          .order("position", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const position = (last?.position ?? -1) + 1;
-
         await supabase.from("todos").insert({
           text,
           due_date,
-          position,
           status: "not_started",
           user_id: user.id,
         });
@@ -487,20 +478,10 @@ export async function confirmAddSubtasks(subtasks: SuggestedSubtask[]) {
   if (!user) return { error: "ログインが必要です" };
   if (subtasks.length === 0) return { error: null };
 
-  const { data: last } = await supabase
-    .from("todos")
-    .select("position")
-    .eq("user_id", user.id)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const startPosition = (last?.position ?? -1) + 1;
-
   await supabase.from("todos").insert(
-    subtasks.map((subtask, index) => ({
+    subtasks.map((subtask) => ({
       text: subtask.text,
       due_date: subtask.due_date,
-      position: startPosition + index,
       status: "not_started" as const,
       user_id: user.id,
     }))

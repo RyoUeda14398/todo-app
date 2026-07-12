@@ -7,20 +7,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayInJST } from "@/lib/date";
 
-async function getNextPosition(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-) {
-  const { data } = await supabase
-    .from("todos")
-    .select("position")
-    .eq("user_id", userId)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return (data?.position ?? -1) + 1;
-}
-
 const extractionSchema = z.object({
   task: z.string().describe("日付や時刻の表現を除いた、やるべきことの内容"),
   due_date: z
@@ -28,11 +14,16 @@ const extractionSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable()
     .describe("締切日(YYYY-MM-DD形式)。文章に締切の言及がなければnull"),
+  due_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .describe("締切時刻(HH:MM形式、24時間制)。文章に時刻の言及がなければnull"),
 });
 
 export type AddTodoFromTextState = {
   error: string | null;
-  lastResult: { task: string; due_date: string | null } | null;
+  lastResult: { task: string; due_date: string | null; due_time: string | null } | null;
 };
 
 export async function addTodoFromText(
@@ -60,21 +51,22 @@ export async function addTodoFromText(
       output: Output.object({ schema: extractionSchema }),
       temperature: 0,
       system: `あなたはToDoアプリの入力アシスタントです。ユーザーが書いた自由な日本語の文章から、
-「タスクの内容」と「締切日」を読み取ってください。
+「タスクの内容」と「締切日」と「締切時刻」を読み取ってください。
 今日の日付は ${today}(日本時間)です。「明日」「来週の金曜」のような相対的な表現は、今日の日付を基準に
 実際のカレンダー上の日付に変換してください。
 文章に締切についての言及がなければ due_date は null にしてください。
+文章に時刻の言及(「18時」「午後3時」など)があれば due_time (24時間制のHH:MM)を設定してください。
+時刻の言及はあるが日付の言及がない場合(例:「18時までに買い物する」)は、due_date を今日の日付にしてください。
+文章に時刻の言及がなければ due_time は null にしてください。
 task には、日付や時刻の表現(「明日」「18時までに」など)を除いた、やるべきことの内容だけを
 入れてください。`,
       prompt: rawText,
     });
 
-    const position = await getNextPosition(supabase, user.id);
-
     await supabase.from("todos").insert({
       text: output.task,
       due_date: output.due_date,
-      position,
+      due_time: output.due_time,
       status: "not_started",
       user_id: user.id,
     });

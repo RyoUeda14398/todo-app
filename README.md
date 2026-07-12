@@ -84,7 +84,7 @@ todo-app/
 │   ├── layout.tsx                  … 全ページ共通のレイアウト(フォント、ダークモード初期化スクリプトなど)
 │   ├── globals.css                 … サイト全体のCSS(Tailwindの読み込み、ダークモード用の設定など)
 │   ├── manifest.ts                 … PWAの設定(アプリ名・アイコン・起動時の見た目)
-│   ├── icon.tsx / apple-icon.tsx   … アプリのアイコン画像をコードから生成
+│   ├── icon.png / apple-icon.png   … アプリのアイコン画像(静的ファイル)
 │   │
 │   ├── login/                      … ログイン画面
 │   │   ├── page.tsx

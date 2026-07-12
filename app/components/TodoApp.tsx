@@ -1,7 +1,6 @@
 "use client";
 
 import { startTransition, useActionState, useState } from "react";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import TodoItem, { type Todo, type TodoStatus } from "@/app/components/TodoItem";
 import { addTodoFromText, type AddTodoFromTextState } from "@/app/todos/ai-actions";
 import { TODO_COLORS } from "@/lib/todoColors";
@@ -10,17 +9,17 @@ type TodoAppProps = {
   todos: Todo[];
   onAdd: (formData: FormData) => void | Promise<void>;
   onStatusChange: (id: string, status: TodoStatus) => void;
-  onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
 };
 
-function formatDueDate(dueDate: string) {
+function formatDueDate(dueDate: string, dueTime?: string | null) {
   const [year, month, day] = dueDate.split("-");
-  return `${year}/${month}/${day}`;
+  return dueTime ? `${year}/${month}/${day} ${dueTime}` : `${year}/${month}/${day}`;
 }
 
 const initialAiState: AddTodoFromTextState = { error: null, lastResult: null };
 
-export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: TodoAppProps) {
+export default function TodoApp({ todos, onAdd, onStatusChange, onEdit }: TodoAppProps) {
   const [activeTab, setActiveTab] = useState<"manual" | "ai">("manual");
   const [aiState, aiFormAction, aiPending] = useActionState(
     addTodoFromText,
@@ -95,6 +94,12 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
               aria-label="締切日(任意)"
               className="rounded-xl border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25 dark:[color-scheme:dark]"
             />
+            <input
+              type="time"
+              name="due_time"
+              aria-label="締切時刻(任意)"
+              className="rounded-xl border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 transition-colors focus:border-indigo-500 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-zinc-50 dark:hover:border-white/25 dark:[color-scheme:dark]"
+            />
             <button
               type="submit"
               disabled={manualPending}
@@ -148,7 +153,7 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
             <p className="text-sm text-indigo-600 dark:text-indigo-400">
               「{aiState.lastResult.task}」を登録しました
               {aiState.lastResult.due_date &&
-                `(締切: ${formatDueDate(aiState.lastResult.due_date)})`}
+                `(締切: ${formatDueDate(aiState.lastResult.due_date, aiState.lastResult.due_time)})`}
             </p>
           )}
         </form>
@@ -160,21 +165,16 @@ export default function TodoApp({ todos, onAdd, onStatusChange, onDelete }: Todo
         </p>
       ) : (
         <>
-          <SortableContext
-            items={todos.map((todo) => todo.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="flex flex-col gap-3">
-              {todos.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  onStatusChange={onStatusChange}
-                  onDelete={onDelete}
-                />
-              ))}
-            </ul>
-          </SortableContext>
+          <ul className="flex flex-col gap-3">
+            {todos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onStatusChange={onStatusChange}
+                onEdit={onEdit}
+              />
+            ))}
+          </ul>
           <p className="mt-6 text-sm font-medium text-zinc-500 dark:text-zinc-400">
             残り <span className="text-base font-bold text-indigo-600 dark:text-indigo-400">{remainingCount}</span> / {todos.length} 件
           </p>

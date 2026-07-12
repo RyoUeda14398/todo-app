@@ -40,3 +40,28 @@ export function getDueStatus(dueDate: string | null, isCompleted: boolean): DueS
 
   return null;
 }
+
+type DueDated = { due_date: string | null; due_time: string | null };
+
+/**
+ * Sorts todos by nearest deadline first (due_date, then due_time as a
+ * tie-breaker); todos with no due date sort last. Used as the default
+ * order for the list/board, replacing manual drag-to-reorder.
+ */
+export function compareTodosByDueDate(a: DueDated, b: DueDated): number {
+  if (a.due_date !== b.due_date) {
+    if (a.due_date === null) return 1;
+    if (b.due_date === null) return -1;
+    return a.due_date < b.due_date ? -1 : 1;
+  }
+  if (a.due_date === null) return 0;
+
+  const aTime = a.due_time ?? "";
+  const bTime = b.due_time ?? "";
+  if (aTime !== bTime) {
+    if (!aTime) return 1;
+    if (!bTime) return -1;
+    return aTime < bTime ? -1 : 1;
+  }
+  return 0;
+}

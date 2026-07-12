@@ -711,3 +711,9 @@ Strict Modeの二重実行と組み合わさって意図しない結果を招く
   (`getSession()` はCookieの値をそのまま返すだけでAuthサーバーによる検証がないため、
   認可の判断に使ってはいけない、と `@supabase/ssr` のREADMEに明記されている)。
 - `service_role`キー(secretキー)は使用しない。フロントエンドで使うのは`anon`キーのみ。
+- **`icon.png` / `apple-icon.png`(静的画像ファイル)の破壊的変更**: `app/icon.tsx`のような
+  コード生成ではなく`app/icon.png`という静的画像ファイルを置く場合、このNext.jsバージョンでは
+  拡張子付きの`/icon.png`というパスで配信される(コード生成方式の`/icon`という拡張子なしパスとは
+  異なる)。`app/manifest.ts`の`icons`配列など、パスを自前で記述している箇所は
+  `/icon.png` / `/apple-icon.png`と拡張子まで書く必要がある(拡張子なしの`/icon`のままだと
+  404になり、Androidでの「ホーム画面に追加」時のアイコンが表示されない)。

@@ -18,8 +18,10 @@ export default async function Home() {
 
   const { data: todos } = await supabase
     .from("todos")
-    .select("id, text, status, due_date, color")
-    .order("position", { ascending: true });
+    .select("id, text, status, due_date, due_time, color")
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("due_time", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
 
   const { data: chatMessages } = await supabase
     .from("chat_messages")
