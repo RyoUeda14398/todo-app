@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useDraggable } from "@dnd-kit/core";
 import { updateTodoStatus } from "@/app/todos/actions";
 import { getDueStatus } from "@/lib/date";
 import { getTodoColorDotClass } from "@/lib/todoColors";
@@ -35,11 +34,6 @@ export default function TodoItem({ todo, onStatusChange, onEdit }: TodoItemProps
   const dueStatus = getDueStatus(todo.due_date, isCompleted);
   const colorDotClass = getTodoColorDotClass(todo.color);
 
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: todo.id,
-    data: { type: "list-item" },
-  });
-
   const borderClass =
     dueStatus === "today"
       ? "border-4 border-red-500 dark:border-red-500"
@@ -47,12 +41,7 @@ export default function TodoItem({ todo, onStatusChange, onEdit }: TodoItemProps
 
   return (
     <li
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={`animate-todo-in flex touch-none select-none cursor-grab items-center gap-2 rounded-xl ${borderClass} bg-white px-3 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing dark:bg-transparent dark:bg-gradient-to-br dark:from-white/[0.06] dark:to-indigo-500/[0.03] dark:hover:from-white/[0.09] ${
-        isDragging ? "opacity-40" : ""
-      }`}
+      className={`animate-todo-in flex items-center gap-2 rounded-xl ${borderClass} bg-white px-3 py-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-transparent dark:bg-gradient-to-br dark:from-white/[0.06] dark:to-indigo-500/[0.03] dark:hover:from-white/[0.09]`}
     >
       <input
         type="checkbox"

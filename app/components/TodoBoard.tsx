@@ -19,7 +19,7 @@ import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoa
 import TodoDetailModal, { type TodoUpdates } from "@/app/components/TodoDetailModal";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
 import type { ChatMessage } from "@/app/chat/actions";
-import { addTodo, deleteTodo, updateDueDate, updateTodo, updateTodoStatus } from "@/app/todos/actions";
+import { addTodo, deleteTodo, updateDueDate, updateTodo } from "@/app/todos/actions";
 import { compareTodosByDueDate } from "@/lib/date";
 
 type TodoBoardProps = {
@@ -190,13 +190,16 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
       | { type: string; dateKey?: string; status?: TodoStatus }
       | undefined;
 
-    // Dropped onto a calendar day cell: update the due date, regardless of
-    // whether the drag started from the list or from another calendar day.
-    if (overData?.type === "calendar-day" && overData.dateKey) {
-      const todoId =
-        activeData?.type === "calendar-chip" && activeData.todoId
-          ? activeData.todoId
-          : String(active.id);
+    // Dropped a calendar chip onto another calendar day: update the due
+    // date. This is the only drag interaction left (list items and kanban
+    // cards are no longer draggable).
+    if (
+      overData?.type === "calendar-day" &&
+      overData.dateKey &&
+      activeData?.type === "calendar-chip" &&
+      activeData.todoId
+    ) {
+      const todoId = activeData.todoId;
       const newDate = overData.dateKey;
       const todo = optimisticTodos.find((t) => t.id === todoId);
       if (!todo || todo.due_date === newDate) return;
@@ -205,23 +208,6 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         applyOptimisticUpdate({ type: "moveDate", id: todoId, due_date: newDate });
       });
       updateDueDate(todoId, newDate);
-      return;
-    }
-
-    // Dropped onto a kanban board column: update the status.
-    if (overData?.type === "kanban-column" && overData.status) {
-      const todoId =
-        activeData?.type === "kanban-card" && activeData.todoId
-          ? activeData.todoId
-          : String(active.id);
-      const newStatus = overData.status;
-      const todo = optimisticTodos.find((t) => t.id === todoId);
-      if (!todo || todo.status === newStatus) return;
-
-      startTransition(() => {
-        applyOptimisticUpdate({ type: "status", id: todoId, status: newStatus });
-      });
-      updateTodoStatus(todoId, newStatus);
       return;
     }
   }
@@ -279,7 +265,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         </div>
 
         <div className={showBoard ? "" : "hidden"}>
-          <KanbanBoard todos={sortedTodos} onEdit={handleOpenEdit} />
+          <KanbanBoard todos={sortedTodos} />
         </div>
         <div className={showChat ? "" : "hidden"}>
           <AiChat initialMessages={initialChatMessages} />
