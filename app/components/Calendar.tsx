@@ -10,6 +10,7 @@ type CalendarProps = {
   todos: Todo[];
   onSelectTodo: (id: string) => void;
   onAddTodo: (dateKey: string) => void;
+  onShowMore: (dateKey: string) => void;
 };
 
 type Cell = {
@@ -71,6 +72,7 @@ function DayCell({
   holidayName,
   onSelectTodo,
   onAddTodo,
+  onShowMore,
 }: {
   cell: Cell;
   isToday: boolean;
@@ -78,6 +80,7 @@ function DayCell({
   holidayName: string | null;
   onSelectTodo: (id: string) => void;
   onAddTodo: (dateKey: string) => void;
+  onShowMore: (dateKey: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${cell.dateKey}`,
@@ -125,7 +128,13 @@ function DayCell({
           <CalendarChip key={todo.id} todo={todo} onSelectTodo={onSelectTodo} />
         ))}
         {hiddenCount > 0 && (
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowMore(cell.dateKey);
+            }}
+            className="cursor-pointer text-[10px] font-semibold text-indigo-500 underline decoration-dotted underline-offset-2 hover:text-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200"
+          >
             +{hiddenCount}件
           </span>
         )}
@@ -134,7 +143,7 @@ function DayCell({
   );
 }
 
-export default function Calendar({ todos, onSelectTodo, onAddTodo }: CalendarProps) {
+export default function Calendar({ todos, onSelectTodo, onAddTodo, onShowMore }: CalendarProps) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [monthIndex, setMonthIndex] = useState(now.getMonth());
@@ -245,6 +254,7 @@ export default function Calendar({ todos, onSelectTodo, onAddTodo }: CalendarPro
               holidayName={holidaysByDate.get(cell.dateKey) ?? null}
               onSelectTodo={onSelectTodo}
               onAddTodo={onAddTodo}
+              onShowMore={onShowMore}
             />
           );
         })}

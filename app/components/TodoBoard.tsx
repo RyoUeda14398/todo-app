@@ -18,6 +18,7 @@ import AiChat from "@/app/components/AiChat";
 import NotificationSettingsLoader from "@/app/components/NotificationSettingsLoader";
 import TodoDetailModal, { type TodoUpdates } from "@/app/components/TodoDetailModal";
 import TodoAddModal, { type NewTodoData } from "@/app/components/TodoAddModal";
+import DayTasksModal from "@/app/components/DayTasksModal";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
 import type { ChatMessage } from "@/app/chat/actions";
 import { addTodo, deleteTodo, updateDueDate, updateTodo } from "@/app/todos/actions";
@@ -120,6 +121,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
     ? (sortedTodos.find((t) => t.id === detailModal.id) ?? null)
     : null;
   const [addModalDate, setAddModalDate] = useState<string | null>(null);
+  const [dayTasksDate, setDayTasksDate] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -173,6 +175,11 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
 
   function handleOpenEdit(id: string) {
     setDetailModal({ id, mode: "edit" });
+  }
+
+  function handleSelectFromDayList(id: string) {
+    setDayTasksDate(null);
+    setDetailModal({ id, mode: "view" });
   }
 
   function handleSaveEdit(id: string, updates: TodoUpdates) {
@@ -274,6 +281,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
               todos={sortedTodos}
               onSelectTodo={(id) => setDetailModal({ id, mode: "view" })}
               onAddTodo={(dateKey) => setAddModalDate(dateKey)}
+              onShowMore={(dateKey) => setDayTasksDate(dateKey)}
             />
           </div>
         </div>
@@ -311,6 +319,16 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
           dueDate={addModalDate}
           onClose={() => setAddModalDate(null)}
           onAdd={handleQuickAdd}
+        />
+      )}
+
+      {dayTasksDate && (
+        <DayTasksModal
+          key={dayTasksDate}
+          dateKey={dayTasksDate}
+          todos={sortedTodos.filter((t) => t.due_date === dayTasksDate)}
+          onClose={() => setDayTasksDate(null)}
+          onSelectTodo={handleSelectFromDayList}
         />
       )}
     </DndContext>
