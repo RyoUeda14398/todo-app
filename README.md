@@ -294,6 +294,10 @@ create table public.todos (
   due_day_reminder_sent boolean not null default false,
   completed_at timestamptz,
   due_date_postponed_at timestamptz,
+  -- 論理削除(ソフトデリート)用。NULL = 通常/未削除。日時が入っていると
+  -- リスト・ボード・チャットからは非表示になるが、締切日があればカレンダーには
+  -- 「削除済み」の過去の記録として残り続ける。
+  deleted_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -392,6 +396,7 @@ begin
   from todos t
   join push_subscriptions ps on ps.user_id = t.user_id
   where t.completed = false
+    and t.deleted_at is null
     and (
       (
         t.due_date = ((now() at time zone 'Asia/Tokyo')::date)
@@ -540,11 +545,14 @@ npm run lint    # ESLintでコードをチェック
 | `status` | text | `not_started` / `in_progress` / `completed` の3値(カンバンボードの列に対応) |
 | `completed` | boolean | `status = 'completed'`のときだけtrueになる自動計算列(生成列)。直接書き込みはできない |
 | `due_date` | date | 締切日(任意) |
-| `position` | integer | 並び順 |
+| `due_time` | time | 締切時刻(任意)。締切日が設定されている場合のみ保持 |
+| `color` | text | タスクの色分け(任意)。`red`/`orange`/`yellow`/`green`/`teal`/`blue`/`purple`/`pink` |
+| `position` | integer | 並び順(現在は締切順の自動並べ替えに移行したため未使用) |
 | `day_before_reminder_sent` | boolean | 「明日締切」の通知を送信済みか |
 | `due_day_reminder_sent` | boolean | 「今日締切」の通知を送信済みか |
 | `completed_at` | timestamptz | 完了した日時(週次サマリーの「今週完了したタスク」判定に使用) |
 | `due_date_postponed_at` | timestamptz | 締切日を後ろ倒しに変更した日時(週次サマリーの「先延ばし」判定に使用) |
+| `deleted_at` | timestamptz | 論理削除(ソフトデリート)の日時。NULL = 未削除。日時が入っているとリスト/ボード/チャットからは非表示になり、締切日があればカレンダーに「削除済み」記録として残る |
 | `created_at` | timestamptz | 作成日時 |
 
 **`push_subscriptions`** — プッシュ通知の宛先情報(端末ごとに1行)

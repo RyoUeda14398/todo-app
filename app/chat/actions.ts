@@ -91,6 +91,7 @@ export async function sendChatMessage(
           .from("todos")
           .select("id, text, status, due_date")
           .eq("user_id", user.id)
+          .is("deleted_at", null)
           .order("due_date", { ascending: true, nullsFirst: false })
           .order("created_at", { ascending: true });
         return data ?? [];
@@ -243,16 +244,19 @@ export async function sendChatMessage(
               .from("todos")
               .select("text, completed_at")
               .eq("user_id", user.id)
+              .is("deleted_at", null)
               .gte("completed_at", sevenDaysAgo),
             supabase
               .from("todos")
               .select("text, due_date, due_date_postponed_at")
               .eq("user_id", user.id)
+              .is("deleted_at", null)
               .gte("due_date_postponed_at", sevenDaysAgo),
             supabase
               .from("todos")
               .select("text, due_date")
               .eq("user_id", user.id)
+              .is("deleted_at", null)
               .neq("status", "completed")
               .lt("due_date", today),
           ]);
@@ -413,11 +417,13 @@ export async function checkProactiveSuggestion(): Promise<ChatMessage | null> {
       .from("todos")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
+      .is("deleted_at", null)
       .eq("status", "not_started"),
     supabase
       .from("todos")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
+      .is("deleted_at", null)
       .neq("status", "completed")
       .lt("due_date", today),
   ]);
@@ -454,8 +460,11 @@ export async function checkProactiveSuggestion(): Promise<ChatMessage | null> {
   return (inserted as ChatMessage) ?? null;
 }
 
-// The only path to an actual deletion: called directly from the confirm
-// button's onClick in the UI, never by the AI.
+// The only path to a deletion via chat: called directly from the confirm
+// button's onClick in the UI, never by the AI. Uses the same logical
+// (soft) delete rule as the list/board: a todo with a due date is kept as a
+// calendar past record; one without is deleted for real. (See deleteTodo in
+// app/todos/actions.ts and the SQL in CLAUDE.md.)
 export async function confirmDeleteTodo(todoId: string) {
   const supabase = await createClient();
   const {
@@ -463,7 +472,23 @@ export async function confirmDeleteTodo(todoId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "ログインが必要です" };
 
-  await supabase.from("todos").delete().eq("id", todoId).eq("user_id", user.id);
+  const { data: existing } = await supabase
+    .from("todos")
+    .select("due_date")
+    .eq("id", todoId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing?.due_date) {
+    await supabase
+      .from("todos")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", todoId)
+      .eq("user_id", user.id);
+  } else {
+    await supabase.from("todos").delete().eq("id", todoId).eq("user_id", user.id);
+  }
+
   revalidatePath("/");
   return { error: null };
 }

@@ -14,6 +14,10 @@ export type Todo = {
   due_date: string | null;
   due_time: string | null;
   color: string | null;
+  // Soft-delete marker. null = normal/active; a timestamp = "removed from the
+  // list/board" but (if it has a due_date) kept on the calendar as a past
+  // record. Requires the `deleted_at` column added by the SQL in CLAUDE.md.
+  deleted_at: string | null;
 };
 
 type TodoItemProps = {

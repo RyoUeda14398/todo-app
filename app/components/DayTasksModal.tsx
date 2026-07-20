@@ -49,25 +49,40 @@ export default function DayTasksModal({
         <ul className="flex flex-col gap-2">
           {todos.map((todo) => {
             const colorDotClass = getTodoColorDotClass(todo.color);
+            const isDeleted = todo.deleted_at !== null;
             return (
               <li key={todo.id}>
                 <button
                   type="button"
                   onClick={() => onSelectTodo(todo.id)}
-                  className="flex w-full items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 text-left text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-indigo-400/25 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]"
+                  className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                    isDeleted
+                      ? "border-zinc-200 bg-zinc-50/70 opacity-70 hover:bg-zinc-100 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]"
+                      : "border-indigo-100 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 dark:border-indigo-400/25 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]"
+                  }`}
                 >
                   {colorDotClass && (
-                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${colorDotClass}`} aria-hidden />
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${colorDotClass} ${isDeleted ? "opacity-60" : ""}`}
+                      aria-hidden
+                    />
                   )}
                   <span
                     className={`flex-1 break-words ${
-                      todo.status === "completed"
-                        ? "text-zinc-400 line-through dark:text-zinc-500"
-                        : "text-zinc-900 dark:text-zinc-50"
+                      isDeleted
+                        ? "italic text-zinc-400 line-through dark:text-zinc-500"
+                        : todo.status === "completed"
+                          ? "text-zinc-400 line-through dark:text-zinc-500"
+                          : "text-zinc-900 dark:text-zinc-50"
                     }`}
                   >
                     {todo.text}
                   </span>
+                  {isDeleted && (
+                    <span className="shrink-0 rounded-full bg-zinc-200 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-white/10 dark:text-zinc-400">
+                      削除済み
+                    </span>
+                  )}
                   {todo.due_time && (
                     <span className="shrink-0 text-xs text-zinc-400 dark:text-zinc-500">
                       {todo.due_time.slice(0, 5)}

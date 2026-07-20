@@ -21,7 +21,13 @@ import TodoAddModal, { type NewTodoData } from "@/app/components/TodoAddModal";
 import DayTasksModal from "@/app/components/DayTasksModal";
 import type { Todo, TodoStatus } from "@/app/components/TodoItem";
 import type { ChatMessage } from "@/app/chat/actions";
-import { addTodo, deleteTodo, updateDueDate, updateTodo } from "@/app/todos/actions";
+import {
+  addTodo,
+  deleteTodo,
+  permanentlyDeleteTodo,
+  updateDueDate,
+  updateTodo,
+} from "@/app/todos/actions";
 import { compareTodosByDueDate } from "@/lib/date";
 
 type TodoBoardProps = {
@@ -32,6 +38,7 @@ type TodoBoardProps = {
 type OptimisticAction =
   | { type: "add"; todo: Todo }
   | { type: "status"; id: string; status: TodoStatus }
+  | { type: "softDelete"; id: string }
   | { type: "delete"; id: string }
   | { type: "moveDate"; id: string; due_date: string | null }
   | { type: "edit"; id: string; updates: TodoUpdates };
@@ -44,6 +51,16 @@ function todosReducer(state: Todo[], action: OptimisticAction): Todo[] {
       return state.map((todo) =>
         todo.id === action.id ? { ...todo, status: action.status } : todo
       );
+    // Hide from list/board but keep the row (with a deleted_at marker) so the
+    // calendar can still show it as a past record.
+    case "softDelete":
+      return state.map((todo) =>
+        todo.id === action.id
+          ? { ...todo, deleted_at: new Date().toISOString() }
+          : todo
+      );
+    // Remove entirely (no due date to keep on the calendar, or a permanent
+    // delete from the calendar side).
     case "delete":
       return state.filter((todo) => todo.id !== action.id);
     case "moveDate":
@@ -99,6 +116,9 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
     todosReducer
   );
   const sortedTodos = [...optimisticTodos].sort(compareTodosByDueDate);
+  // The list and board only show active todos; the calendar additionally shows
+  // soft-deleted ones (which always have a due_date) as grayed-out past records.
+  const activeTodos = sortedTodos.filter((t) => !t.deleted_at);
   const [, startTransition] = useTransition();
   const [activeDragTodo, setActiveDragTodo] = useState<Todo | null>(null);
   const isMobile = useSyncExternalStore(
@@ -146,6 +166,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         due_date: dueDate || null,
         due_time: dueDate && dueTime ? dueTime : null,
         color: color || null,
+        deleted_at: null,
       },
     });
     await addTodo(formData);
@@ -166,11 +187,25 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
     applyOptimisticUpdate({ type: "status", id, status });
   }
 
+  // "削除" from the list / board / detail modal. Logical delete: a todo with a
+  // due date is kept as a grayed-out calendar record; one without is removed.
+  // The server (deleteTodo) makes the same decision.
   function handleDelete(id: string) {
+    const todo = optimisticTodos.find((t) => t.id === id);
+    startTransition(() => {
+      applyOptimisticUpdate(
+        todo?.due_date ? { type: "softDelete", id } : { type: "delete", id }
+      );
+    });
+    deleteTodo(id);
+  }
+
+  // Permanently removes a soft-deleted past record from the calendar side.
+  function handlePermanentDelete(id: string) {
     startTransition(() => {
       applyOptimisticUpdate({ type: "delete", id });
     });
-    deleteTodo(id);
+    permanentlyDeleteTodo(id);
   }
 
   function handleOpenEdit(id: string) {
@@ -268,7 +303,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         <div className="flex w-full flex-1 flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
           <div className={`w-full lg:w-[340px] lg:shrink-0 ${showList ? "" : "hidden"}`}>
             <TodoApp
-              todos={sortedTodos}
+              todos={activeTodos}
               onAdd={handleAdd}
               onStatusChange={handleStatusChange}
               onEdit={handleOpenEdit}
@@ -287,7 +322,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         </div>
 
         <div className={showBoard ? "" : "hidden"}>
-          <KanbanBoard todos={sortedTodos} />
+          <KanbanBoard todos={activeTodos} />
         </div>
         <div className={showChat ? "" : "hidden"}>
           <AiChat initialMessages={initialChatMessages} />
@@ -310,6 +345,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
           onClose={() => setDetailModal(null)}
           onSave={handleSaveEdit}
           onDelete={handleDelete}
+          onPermanentDelete={handlePermanentDelete}
         />
       )}
 

@@ -35,12 +35,24 @@ function CalendarChip({
   todo: Todo;
   onSelectTodo: (id: string) => void;
 }) {
+  const isDeleted = todo.deleted_at !== null;
+  // Soft-deleted past records can't be dragged (their due date is fixed
+  // history), but they're still clickable to open the permanent-delete view.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `chip-${todo.id}`,
     data: { type: "calendar-chip", todoId: todo.id },
+    disabled: isDeleted,
   });
 
   const colorChipClass = getTodoColorChipClass(todo.color);
+
+  const appearance = isDeleted
+    ? "cursor-pointer bg-zinc-100/70 italic text-zinc-400 opacity-60 dark:bg-white/[0.04] dark:text-zinc-500"
+    : `${isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"} ${
+        todo.status === "completed"
+          ? "bg-zinc-100 text-zinc-400 line-through dark:bg-white/5 dark:text-zinc-500"
+          : (colorChipClass ?? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200")
+      }`;
 
   return (
     <span
@@ -51,14 +63,11 @@ function CalendarChip({
         e.stopPropagation();
         onSelectTodo(todo.id);
       }}
-      className={`select-none break-words rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${
-        isDragging ? "cursor-grabbing opacity-30" : "cursor-grab"
-      } ${
-        todo.status === "completed"
-          ? "bg-zinc-100 text-zinc-400 line-through dark:bg-white/5 dark:text-zinc-500"
-          : (colorChipClass ?? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/25 dark:text-indigo-200")
-      }`}
-      title={todo.due_time ? `${todo.text} (${todo.due_time.slice(0, 5)})` : todo.text}
+      className={`select-none break-words rounded-md px-1 py-0.5 text-xs font-medium leading-tight transition-all hover:scale-[1.03] ${appearance}`}
+      title={
+        (todo.due_time ? `${todo.text} (${todo.due_time.slice(0, 5)})` : todo.text) +
+        (isDeleted ? "(リストから削除済み)" : "")
+      }
     >
       {todo.due_time ? `${todo.due_time.slice(0, 5)} ${todo.text}` : todo.text}
     </span>
@@ -87,9 +96,15 @@ function DayCell({
     data: { type: "calendar-day", dateKey: cell.dateKey },
   });
 
-  const visibleTodos = dayTodos.slice(0, 3);
-  const hiddenCount = dayTodos.length - visibleTodos.length;
-  const hasTodos = dayTodos.length > 0;
+  // Show active todos before soft-deleted past records, and gate the "has
+  // tasks" highlight on there being at least one *active* task so a day with
+  // only past records looks neutral.
+  const ordered = [...dayTodos].sort(
+    (a, b) => Number(a.deleted_at !== null) - Number(b.deleted_at !== null)
+  );
+  const visibleTodos = ordered.slice(0, 3);
+  const hiddenCount = ordered.length - visibleTodos.length;
+  const hasTodos = dayTodos.some((t) => t.deleted_at === null);
 
   return (
     <div

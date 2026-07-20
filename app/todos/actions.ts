@@ -55,7 +55,46 @@ export async function updateTodoStatus(
   revalidatePath("/");
 }
 
+// "削除" from the list / board / AI chat. This is a *logical* (soft) delete:
+// a todo that has a due date is kept in the database (marked deleted_at) so it
+// can still appear on the calendar as a past record — it just disappears from
+// the list/board/chat. A todo with no due date has nowhere to live on the
+// calendar, so it is deleted for real (same as before).
+//
+// NOTE: relies on the `deleted_at` column. Run the SQL in CLAUDE.md
+// ("ToDoリストから消してもカレンダーには残す論理削除") before deploying.
 export async function deleteTodo(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("todos")
+    .select("due_date")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing?.due_date) {
+    // Keep it as a past record on the calendar; hide it from the list/board.
+    await supabase
+      .from("todos")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id);
+  } else {
+    // No due date → nowhere to show it on the calendar → delete for real.
+    await supabase.from("todos").delete().eq("id", id).eq("user_id", user.id);
+  }
+
+  revalidatePath("/");
+}
+
+// Permanently removes a todo from the database. Reached only from the calendar
+// side, where a soft-deleted ("削除済み") past record can be cleared for good.
+export async function permanentlyDeleteTodo(id: string) {
   const supabase = await createClient();
   const {
     data: { user },

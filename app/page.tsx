@@ -18,7 +18,7 @@ export default async function Home() {
 
   const { data: todos } = await supabase
     .from("todos")
-    .select("id, text, status, due_date, due_time, color")
+    .select("id, text, status, due_date, due_time, color, deleted_at")
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("due_time", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });

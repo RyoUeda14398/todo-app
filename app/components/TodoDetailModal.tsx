@@ -17,6 +17,9 @@ type TodoDetailModalProps = {
   onClose: () => void;
   onSave: (id: string, updates: TodoUpdates) => void;
   onDelete: (id: string) => void;
+  // Permanently removes a soft-deleted ("削除済み") past record. Only offered
+  // when the opened todo is already soft-deleted.
+  onPermanentDelete: (id: string) => void;
 };
 
 function formatDueDateTime(dueDate: string | null, dueTime: string | null) {
@@ -33,8 +36,10 @@ export default function TodoDetailModal({
   onClose,
   onSave,
   onDelete,
+  onPermanentDelete,
 }: TodoDetailModalProps) {
-  const [isEditing, setIsEditing] = useState(initialMode === "edit");
+  const isDeleted = todo.deleted_at !== null;
+  const [isEditing, setIsEditing] = useState(!isDeleted && initialMode === "edit");
   const [text, setText] = useState(todo.text);
   const [dueDate, setDueDate] = useState(todo.due_date ?? "");
   const [dueTime, setDueTime] = useState(todo.due_time ? todo.due_time.slice(0, 5) : "");
@@ -67,6 +72,11 @@ export default function TodoDetailModal({
     onClose();
   }
 
+  function handlePermanentDelete() {
+    onPermanentDelete(todo.id);
+    onClose();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
@@ -78,7 +88,48 @@ export default function TodoDetailModal({
         className="w-full max-w-md rounded-2xl border-2 border-indigo-200/70 bg-white p-6 shadow-2xl dark:border-indigo-400/40 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
-        {isEditing ? (
+        {isDeleted ? (
+          // A soft-deleted past record: read-only, with a permanent-delete
+          // action. (Opened by tapping a grayed-out chip on the calendar.)
+          <>
+            <div className="mb-3 flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-2">
+                {colorDotClass && (
+                  <span className={`h-3 w-3 shrink-0 rounded-full opacity-60 ${colorDotClass}`} aria-hidden />
+                )}
+                <h2 className="break-words text-lg font-bold text-zinc-500 line-through dark:text-zinc-400">
+                  {todo.text}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="閉じる"
+                className="shrink-0 rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-white/10 dark:hover:text-zinc-300"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:bg-white/10 dark:text-zinc-400">
+              リストから削除済み(カレンダーの記録)
+            </p>
+            <p className="mb-5 mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+              締切:{" "}
+              <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                {formatDueDateTime(todo.due_date, todo.due_time)}
+              </span>
+            </p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handlePermanentDelete}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-red-700"
+              >
+                完全に削除
+              </button>
+            </div>
+          </>
+        ) : isEditing ? (
           <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-4">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">タスクを編集</h2>
