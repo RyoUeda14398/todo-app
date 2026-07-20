@@ -54,9 +54,83 @@ body {
   animation: blob-drift 16s ease-in-out infinite;
 }
 
+/* ── Startup loading screen animations ─────────────────────── */
+
+/* The app icon gently breathes (scale + glow) while loading. */
+@keyframes loading-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.55));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 34px rgba(129, 140, 248, 0.85));
+  }
+}
+
+.animate-loading-pulse {
+  animation: loading-pulse 2s ease-in-out infinite;
+}
+
+/* A neon ring that rotates around the icon. */
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-loading-spin {
+  animation: loading-spin 2.4s linear infinite;
+}
+
+/* A second ring rotating the other way, slightly slower. */
+.animate-loading-spin-reverse {
+  animation: loading-spin 3.6s linear infinite reverse;
+}
+
+/* The soft halo behind the icon expands and fades, like a pulse wave. */
+@keyframes loading-halo {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.animate-loading-halo {
+  animation: loading-halo 2s ease-out infinite;
+}
+
+/* The "読み込み中" label dims and brightens. */
+@keyframes loading-text {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-loading-text {
+  animation: loading-text 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-todo-in,
-  .animate-blob {
+  .animate-blob,
+  .animate-loading-pulse,
+  .animate-loading-spin,
+  .animate-loading-spin-reverse,
+  .animate-loading-halo,
+  .animate-loading-text {
     animation: none;
   }
 }
