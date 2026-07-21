@@ -68,39 +68,28 @@ export async function deleteTodo(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { debug: "no user" };
+  if (!user) return;
 
-  const { data: existing, error: selectError } = await supabase
+  const { data: existing } = await supabase
     .from("todos")
     .select("due_date")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  let debug: Record<string, unknown> = {
-    id,
-    userId: user.id,
-    existing,
-    selectError,
-  };
-
   if (existing?.due_date) {
     // Keep it as a past record on the calendar; hide it from the list/board.
-    const { data, error } = await supabase
+    await supabase
       .from("todos")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
-      .eq("user_id", user.id)
-      .select();
-    debug = { ...debug, branch: "soft", data, error };
+      .eq("user_id", user.id);
   } else {
     // No due date → nowhere to show it on the calendar → delete for real.
-    const { data, error } = await supabase.from("todos").delete().eq("id", id).eq("user_id", user.id).select();
-    debug = { ...debug, branch: "hard", data, error };
+    await supabase.from("todos").delete().eq("id", id).eq("user_id", user.id);
   }
 
   revalidatePath("/");
-  return { debug };
 }
 
 // Permanently removes a todo from the database. Reached only from the calendar

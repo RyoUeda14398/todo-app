@@ -191,16 +191,13 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
   // due date is kept as a grayed-out calendar record; one without is removed.
   // The server (deleteTodo) makes the same decision.
   function handleDelete(id: string) {
-    console.log("[DEBUG handleDelete called]", id);
     const todo = optimisticTodos.find((t) => t.id === id);
     startTransition(() => {
       applyOptimisticUpdate(
         todo?.due_date ? { type: "softDelete", id } : { type: "delete", id }
       );
     });
-    deleteTodo(id)
-      .then((r) => console.log("[DEBUG deleteTodo result]", JSON.stringify(r)))
-      .catch((e) => console.log("[DEBUG deleteTodo threw]", String(e)));
+    deleteTodo(id);
   }
 
   // Permanently removes a soft-deleted past record from the calendar side.
