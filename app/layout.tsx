@@ -37,6 +37,13 @@ export default function RootLayout({
       lang="ja"
       className={`${zenKakuGothicNew.variable} h-full antialiased`}
       suppressHydrationWarning
+      // Plain inline style (not a Tailwind class) on purpose: this has to be
+      // visible on the very first paint, before the stylesheet has loaded —
+      // a class like `bg-black` doesn't take effect until Tailwind's CSS
+      // arrives, which is exactly the gap that caused a flash of the
+      // browser's default white background before the (always-dark)
+      // loading.tsx splash could paint over it.
+      style={{ backgroundColor: "#000000" }}
     >
       <body className="min-h-full flex flex-col">
         <script
