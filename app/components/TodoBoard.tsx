@@ -197,7 +197,7 @@ export default function TodoBoard({ todos, initialChatMessages }: TodoBoardProps
         todo?.due_date ? { type: "softDelete", id } : { type: "delete", id }
       );
     });
-    deleteTodo(id);
+    deleteTodo(id).then((r) => console.log("[DEBUG deleteTodo result]", JSON.stringify(r)));
   }
 
   // Permanently removes a soft-deleted past record from the calendar side.
